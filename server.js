@@ -22,12 +22,19 @@ router.get('/', function(req, res) {
     res.json({ message: 'RESTFull Server (Manuel Pi)' });  
 });
 
+function populateModelFromReq(MongooseModel, req) {
+    var model = new MongooseModel();
+    for(var attribute in req.body){
+       model.set(attribute, req.body[attribute], {strict: false});
+    }
+    return model;
+}
+
 router.route('/*/$').post(function(req, res){
   var path = req.path.split('/')[1];
   try{
         var Model = require('./models/' + path);
-        var model = new Model();
-        model.login = req.body.login;
+        var model = populateModelFromReq(Model, req);
         model.save(function(err) {
                     if (err)
                         res.send(err);
@@ -59,6 +66,7 @@ router.route('/*/:model_id').get(function(req, res) {
         Model.findById(req.params.model_id, function(err, model) {
             if (err)
                 res.send(err);
+               
             res.json(model);
         });
     } catch(e){
