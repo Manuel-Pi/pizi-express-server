@@ -15,26 +15,32 @@ app.use(bodyParser.json());
 
 var router = express.Router();
 
-var User = require('./models/user'); 
-
 // test route to make sure everything is working (accessed at GET http://localhost:8080/api)
 router.get('/', function(req, res) {
     res.json({ message: 'RESTFull Server (Manuel Pi)' });  
 });
 
-function populateModelFromReq(MongooseModel, req) {
-    var model = new MongooseModel();
-    for(var attribute in req.body){
-       model.set(attribute, req.body[attribute], {strict: false});
+var models = {};
+
+function getMoogouseModel(path){
+    var Model;
+    if(!models[path]){
+        Model = mongoose.model(path, new mongoose.Schema());
+        models[path] = Model;
+    } else {
+        Model = models[path];
     }
-    return model;
+    return Model;
 }
 
 router.route('/*/$').post(function(req, res){
   var path = req.path.split('/')[1];
   try{
-        var Model = require('./models/' + path);
-        var model = populateModelFromReq(Model, req);
+        var MongooseModel = getMoogouseModel(path);             
+        var model = new MongooseModel();
+        for(var attribute in req.body){
+            model.set(attribute, req.body[attribute], {strict: false});
+        }
         model.save(function(err) {
                     if (err)
                         res.send(err);
@@ -42,12 +48,12 @@ router.route('/*/$').post(function(req, res){
                     res.json({ message: 'Model created!'});
                 });
     } catch(e){
-        res.send( path + " not found");
+        res.send( path + " not found" + e.message);
     }
 }).get(function(req, res) {
     var path = req.path.split('/')[1];
     try{
-        var Model = require('./models/' + path); 
+        var Model = getMoogouseModel(path); 
         Model.find(function(err, models) {
             if (err)
                 res.send(err);
@@ -55,14 +61,14 @@ router.route('/*/$').post(function(req, res){
             res.json(models);
         });
     } catch(e){
-        res.send( path + " not found");
+        res.send( path + " not found" + e.message);
     }
 });
 
 router.route('/*/:model_id').get(function(req, res) {
     var path = req.path.split('/')[1];
     try{
-        var Model = require('./models/' + path);
+        var Model = getMoogouseModel(path);
         Model.findById(req.params.model_id, function(err, model) {
             if (err)
                 res.send(err);
@@ -75,20 +81,20 @@ router.route('/*/:model_id').get(function(req, res) {
 }).put(function(req, res) {
     var path = req.path.split('/')[1];
     try{
-        var Model = require('./models/' + path);
+        var Model = getMoogouseModel(path);
         Model.findById(req.params.model_id, function(err, model) {
     
             if (err)
                 res.send(err);
-    
-            model.login = req.body.login;  // update the bears info
-    
-            // save the bear
+
+            for(var attribute in req.body){
+                model.set(attribute, req.body[attribute], {strict: false});
+            }
             model.save(function(err) {
                 if (err)
                     res.send(err);
     
-                res.json({ message: 'User updated!' });
+                res.json({ message: 'Model updated!' });
             });
         });
     } catch(e){
@@ -97,7 +103,7 @@ router.route('/*/:model_id').get(function(req, res) {
 }).delete(function(req, res) {
     var path = req.path.split('/')[1];
     try{
-        var Model = require('./models/' + path);
+        var Model = getMoogouseModel(path);
         Model.remove({
             _id: req.params.model_id
         }, function(err, model) {
