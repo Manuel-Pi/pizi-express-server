@@ -63,6 +63,20 @@ router.route('/*/$').post(function(req, res){
     } catch(e){
         res.send( path + " not found" + e.message);
     }
+}).delete(function(req, res) {
+    var path = req.path.split('/')[1];
+    try{
+        var Model = getMoogouseModel(path);
+        
+        Model.remove(req.body, function(err, model) {
+            if (err)
+                res.send(err);
+
+            res.json({ message: 'Successfully deleted' });
+        });
+    } catch(e){
+        res.send( path + " not found");
+    }  
 });
 
 router.route('/*/:model_id').get(function(req, res) {
@@ -104,14 +118,33 @@ router.route('/*/:model_id').get(function(req, res) {
     var path = req.path.split('/')[1];
     try{
         var Model = getMoogouseModel(path);
-        Model.remove({
-            _id: req.params.model_id
-        }, function(err, model) {
-            if (err)
-                res.send(err);
-
-            res.json({ message: 'Successfully deleted' });
-        });
+        
+        if(req.body.length === 0){
+            Model.remove({
+                _id: req.params.model_id
+            }, function(err, model) {
+                if (err)
+                    res.send(err);
+    
+                res.json({ message: 'Successfully deleted' });
+            });
+        } else {
+            Model.findById(req.params.model_id, function(err, model) {
+                if (err)
+                    res.send(err);
+    
+                for(var attribute in req.body){
+                    model.set(attribute, undefined, {strict: false});
+                }
+                model.save(function(err) {
+                    if (err)
+                        res.send(err);
+        
+                    res.json({ message: 'Model updated!' });
+                });
+            });
+        }
+        
     } catch(e){
         res.send( path + " not found");
     }  
