@@ -118,8 +118,14 @@ router.route('/*/:model_id').get(function(req, res) {
     var path = req.path.split('/')[1];
     try{
         var Model = getMoogouseModel(path);
-        
-        if(req.body.length === 0){
+        var hasAttributes = false;
+        for(var prop in req.body) {
+            if(req.body.hasOwnProperty(prop)){
+                hasAttributes = true;
+                break;
+            }  
+        }
+        if(!hasAttributes){
             Model.remove({
                 _id: req.params.model_id
             }, function(err, model) {
