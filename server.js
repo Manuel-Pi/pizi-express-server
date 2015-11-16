@@ -194,16 +194,14 @@ io.sockets.on('connection', function (socket) {
     });
     
     socket.on('disconnect', function () {
-        console.log('Deconnexion: ');
         var i = users.indexOf(socket.user);
         if(i > -1){
+            console.log('Deconnexion: ' + users[i]);
             delete users[i];
         }
         socket.emit('users', users);
     });
 });
-
-
 
 server.listen(port, function () {
     console.log('Server started on port ' + port + ' !');
