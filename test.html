@@ -1,0 +1,46 @@
+<html>
+	<head>
+		<title>Test WebSocket</title>
+		<style>
+			#render{
+				height: 200px;
+				width: 400px;
+				overflow-x: hidden;
+				overflow-y: scroll;
+			}
+			.sent{
+				color: lightcoral;
+				text-align: right;
+				padding: 10px;
+			}
+			.received{
+				color: lightslategray;
+				padding: 10px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="render"></div>
+		<input type="text" id="message"/>
+		<input type="button" value="Send" id="poke" />
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+			var socket = io.connect('http://top608:8080');
+			function addMessage(message, send){
+				var div = document.createElement('div');
+				div.innerHTML = message;
+				div.className = send ? "sent" : "received";
+				document.getElementById("render").appendChild(div);
+			};
+			socket.on('message', function(message) {
+				addMessage(message);
+			});
+			document.getElementById("poke").onclick = function(){
+				var message = document.getElementById("message").value;
+				document.getElementById("message").value = "";
+				addMessage(message, true);
+				socket.emit('message', message);
+			};
+		</script> 
+	</body>
+</html>

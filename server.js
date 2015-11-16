@@ -1,3 +1,4 @@
+var http = require('http');
 var express = require('express');
 var bodyParser = require('body-parser');
 var mongoose   = require('mongoose');
@@ -13,10 +14,10 @@ var port = 8080;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-var router = express.Router();
+var routerREST = express.Router();
 
 // test route to make sure everything is working (accessed at GET http://localhost:8080/api)
-router.get('/', function(req, res) {
+routerREST.get('/', function(req, res) {
     res.json({ message: 'RESTFull Server (Manuel Pi)' });  
 });
 
@@ -33,7 +34,7 @@ function getMoogouseModel(path){
     return Model;
 }
 
-router.route('/*/$').post(function(req, res){
+routerREST.route('/*/$').post(function(req, res){
   var path = req.path.split('/')[1];
   try{
         var MongooseModel = getMoogouseModel(path);             
@@ -79,7 +80,7 @@ router.route('/*/$').post(function(req, res){
     }  
 });
 
-router.route('/*/:model_id').get(function(req, res) {
+routerREST.route('/*/:model_id').get(function(req, res) {
     var path = req.path.split('/')[1];
     try{
         var Model = getMoogouseModel(path);
@@ -158,15 +159,35 @@ router.route('/*/:model_id').get(function(req, res) {
 
 // REGISTER OUR ROUTES -------------------------------
 // all of our routes will be prefixed with /api
-app.use('/api', router);
+app.use('/api', routerREST);
+
+
+
 
 // START THE SERVER
 // =============================================================================
 app.use(express.static('Apps'));
 
-var server = app.listen(port, function () {
-  var host = server.address().address;
-  var port = server.address().port;
+// Get htpp server
+var server = http.createServer(app);
 
- console.log('Server started!', host, port);
+// Chargement de socket.io
+var io = require('socket.io').listen(server);
+
+// Quand on client se connecte, on le note dans la console
+io.sockets.on('connection', function (socket) {
+    console.log('Un client est connecté !');
+    socket.emit('message', 'Vous êtes bien connecté !');
+    
+     // Quand le serveur reçoit un signal de type "message" du client
+    socket.on('message', function (message) {
+        console.log('Un client me parle ! Il me dit : ' + message);
+        socket.broadcast.emit('message', message);
+    }); 
+});
+
+
+
+server.listen(port, function () {
+    console.log('Server started on port ' + port + ' !');
 });
