@@ -45,8 +45,8 @@
 			#poke{
 				background-color: darkred;
 				font-weight: bold;
-				opacity: 0.8;
-				color: #777;
+				opacity: 0.88;
+				color: #CCC;
 				text-align: center;
 				height: 20px;
 				border-radius: 0 0 0 5px;
@@ -58,7 +58,6 @@
 			}
 			.sent > span{
 				color: white;
-				text-align: right;
 				padding: 10px;
 				opacity: 1;
 				background-color: grey;
@@ -83,7 +82,6 @@
 				padding-right: 10px;
 			}
 			.received > div{
-				text-align: left;
 				color: white;
 				margin: 0;
 				font-size: 0.8em;
@@ -109,20 +107,24 @@
 		<script src="/socket.io/socket.io.js"></script>
 		<script>
 			function addMessage(message, send){
-				var usr = document.createElement('div');
-				usr.innerHTML = message.user;
-				usr.clasName = "user";
-				var div = document.createElement('div');
-				div.appendChild(usr);
-				div.className = send ? "sent" : "received";
-				span = document.createElement('span');
-				span.innerHTML = message.text;
-				span.className = send ? "sent" : "received";
-				div.appendChild(span);
-				document.getElementById("render").appendChild(div);
-				var clear = document.createElement('div');
-				clear.className = "empty";
-				div.appendChild(clear);
+				if(message && message.text){
+					var usr = document.createElement('div');
+					usr.innerHTML = message.user;
+					usr.clasName = "user";
+					var div = document.createElement('div');
+					div.appendChild(usr);
+					div.className = send ? "sent" : "received";
+					span = document.createElement('span');
+					span.innerHTML = message.text;
+					span.className = send ? "sent" : "received";
+					div.appendChild(span);
+					var render = document.getElementById("render");
+					render.appendChild(div);
+					var clear = document.createElement('div');
+					clear.className = "empty";
+					div.appendChild(clear);
+					render.scrollTop = render.scrollHeight;
+				}
 			};
 			
 			var name = prompt("Enter a name:");
@@ -143,7 +145,7 @@
 					}
 				})
 				
-				document.getElementById("poke").onclick = function(){
+				function sendMessage(){
 					var message = {
 						text: document.getElementById("message").value,
 						user: name
@@ -152,6 +154,12 @@
 					addMessage(message, true);
 					if(message.text) socket.emit('message', message);
 				};
+				
+				document.getElementById("poke").onclick = sendMessage;
+				
+				document.getElementById("message").onkeyup = function(event){
+					if(event.keyCode == 13) sendMessage();
+				}
 			} else {
 				alert("No name ... no chat!");
 				document.getElementsByTagName("body")[0].innerHTML = "";
