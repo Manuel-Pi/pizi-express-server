@@ -1,23 +1,24 @@
 module.exports = function(server){
     
-    // Chargement de socket.io
-    var io = require('socket.io').listen(server);
+    // Get io for a specific namespace
+    var io = require('socket.io').listen(server).of('/pizi-chat');
     
     var users = [];
 
-    // Quand on client se connecte, on le note dans la console
-    io.sockets.on('connection', function (socket) {
+    // On connection
+    io.on('connection', function (socket) {
         
         socket.on('login', function (pseudo) {
-            socket.emit('message', {text: 'Connected!', user: "server"});
-            console.log('Connection: ' + pseudo);
-            socket.user = pseudo;
-            users.push(pseudo);
-            socket.emit('users', users);
-            socket.broadcast.emit('users', users);
+            if(users.indexOf(pseudo) == -1){
+                socket.emit('message', {text: 'Connected!', user: "server"});
+                console.log('Connection: ' + pseudo);
+                socket.user = pseudo;
+                users.push(pseudo);
+                socket.emit('users', users);
+                socket.broadcast.emit('users', users);
+            }
         });
         
-        // Quand le serveur reçoit un signal de type "message" du client
         socket.on('message', function (message) {
             socket.broadcast.emit('message', message);
         });
@@ -28,7 +29,7 @@ module.exports = function(server){
                 console.log('Deconnexion: ' + users[i]);
                 delete users[i];
             }
-            socket.emit('users', users);
+            socket.broadcast.emit('users', users);
         });
     });
 }
