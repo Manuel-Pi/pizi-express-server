@@ -16,6 +16,8 @@ module.exports = function(server){
                 users.push(pseudo);
                 socket.emit('users', users);
                 socket.broadcast.emit('users', users);
+            } else {
+                socket.disconnect('unauthorized');
             }
         });
         
