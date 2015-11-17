@@ -6,23 +6,6 @@ if(io){
 		var socket = io.connect('http://top608:8080/pizi-chat');
 		socket.emit('login', name);
 		
-		// Define 'users' event  
-		socket.on('users', function(user) {
-			// Display Chat
-			document.getElementById("pizi-chat").className = "";
-			
-			document.getElementById("userList").innerHTML = "";
-			for(var i = 0; i < user.length; i++){
-				var div = document.createElement('div');
-				div.innerHTML = user[i];
-				document.getElementById("userList").appendChild(div);
-			}
-		});
-		// Define 'message' event 
-		socket.on('message', function(message) {
-			addMessage(message);
-		});
-		
 		// Send message
 		function sendMessage(){
 			var message = {
@@ -55,6 +38,31 @@ if(io){
 				render.scrollTop = render.scrollHeight;
 			}
 		}
+		
+		// Define 'users' event  
+		socket.on('users', function(user) {
+			// Display Chat
+			document.getElementById("pizi-chat").className = "";
+			
+			document.getElementById("userList").innerHTML = "";
+			for(var i = 0; i < user.length; i++){
+				var div = document.createElement('div');
+				div.innerHTML = user[i];
+				document.getElementById("userList").appendChild(div);
+			}
+		});
+		// Define 'message' event 
+		socket.on('message', function(message) {
+			addMessage(message);
+		});
+		
+		document.getElementById("poke").onclick = sendMessage;
+				
+		document.getElementById("message").onkeyup = function(event){
+			if(event.keyCode == 13 && !event.shiftKey) sendMessage();
+		}
+		
+		
 		
 	} else {
 		alert("No name ... no chat!");
