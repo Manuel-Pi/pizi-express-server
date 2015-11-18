@@ -1,30 +1,35 @@
 var express = require('express');
 var mongoose   = require('mongoose');
+var jwt = require('jsonwebtoken');
 
 mongoose.connect('mongodb://localhost/myapp');
-var routerREST = express.Router();
 
-// test route to make sure everything is working (accessed at GET http://localhost:8080/api)
-routerREST.get('/', function(req, res) {
-    res.json({ message: 'RESTFull Server (Manuel Pi)' });  
-});
+// Array of Mongoose models
+mongoose.models = mongoose.models || {};
 
-var models = {};
-
+// Create dynamic Mongoose model
 function getMoogouseModel(path){
     var Model;
-    if(!models[path]){
+    if(!mongoose.models[path]){
         Model = mongoose.model(path, new mongoose.Schema());
-        models[path] = Model;
+        mongoose.models[path] = Model;
     } else {
-        Model = models[path];
+        Model = mongoose.models[path];
     }
     return Model;
 }
 
+var routerREST = express.Router();
+
+// Enter point
+routerREST.get('/', function(req, res) {
+    res.json({ message: 'RESTFull Server (Manuel Pi)' });
+});
+
+
 routerREST.route(/^\/\w*$/).post(function(req, res){
-var path = req.path.split('/')[1];
-try{
+    var path = req.path.split('/')[1];
+    try{
         var MongooseModel = getMoogouseModel(path);             
         var model = new MongooseModel();
         for(var attribute in req.body){
@@ -37,7 +42,7 @@ try{
                     res.json({ message: 'Model created!'});
                 });
     } catch(e){
-        res.send( path + " not found" + e.message);
+        res.send( path + " not found : " + e.message);
     }
 }).get(function(req, res) {
     var path = req.path.split('/')[1];
@@ -50,7 +55,7 @@ try{
             res.json(models);
         });
     } catch(e){
-        res.send( path + " not found" + e.message);
+        res.send( path + " not found : " + e.message);
     }
 }).delete(function(req, res) {
     var path = req.path.split('/')[1];

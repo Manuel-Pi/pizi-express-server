@@ -60,6 +60,8 @@ body{
  /* Messages */
 .received .sent{
 	margin: 10px;
+	font-size: 1em;
+	line-height: 1em;
 }
 .sent > span, .received > span{
 	opacity: 1;
