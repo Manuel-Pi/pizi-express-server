@@ -1,19 +1,14 @@
-var http = require('http');
 var express = require('express');
 var mongoose   = require('mongoose');
-
-var app = express();
-var port = 8080;
 
 // Get config file
 var config = require('./config.json');
 
+// --------------------- AUTHENTIFICATION ---------------------------------
 // Array of Mongoose models
 mongoose.models = mongoose.models || {};
-
 // Set user model for auth
 mongoose.models["user"] = mongoose.model("user", new mongoose.Schema());
-
 // Define the authentification function
 function checkAuth(login, password, callback){
     try{
@@ -34,6 +29,11 @@ function checkAuth(login, password, callback){
     }  
 }
 
+// Get express instance
+var app = express();
+// Use body parser to parse json from request body
+app.use(require('body-parser').json());
+
 // Use auth for the REST API
 app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth, config.jwt));
 
@@ -41,12 +41,12 @@ app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth, config.jwt));
 app.use('/pizi-rest', require('./pizi-rest.js')(config.rest));
 
 // Define a static server
-app.use(express.static('Apps'));
+app.use(express.static(config.staticServerFolder));
 
 // Get launch HTTP server
-var server = http.createServer(app);
-server.listen(port, function () {
-    console.log('Server started on port ' + port + ' !');
+var server = require('http').createServer(app);
+server.listen(config.port, function () {
+    console.log('Server started on port ' + config.port + '...');
 });
 
 // Add WebSocket Chat

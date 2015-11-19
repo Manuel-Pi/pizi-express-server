@@ -42,6 +42,7 @@ module.exports = function(config){
             for(var attribute in req.body){
                 model.set(attribute, req.body[attribute], {strict: false});
             }
+            console.log(req.body);
             model.save(function(err) {
                         if (err) {
                             res.status(500).json({message: OperationError.message});
