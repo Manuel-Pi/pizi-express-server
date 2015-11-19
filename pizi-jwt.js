@@ -24,6 +24,8 @@ module.exports = function(check, config){
 			} else {
 				res.status(500).json({message: NoCredential.message});
 			}
+		} else if(req.path === "/"){
+			next();
 		} else {
 			var auth = req.headers.authorization;
 			if(auth && auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)){
