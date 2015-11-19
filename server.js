@@ -5,6 +5,9 @@ var mongoose   = require('mongoose');
 var app = express();
 var port = 8080;
 
+// Get config file
+var config = require('./config.json');
+
 // Array of Mongoose models
 mongoose.models = mongoose.models || {};
 
@@ -17,23 +20,25 @@ function checkAuth(login, password, callback){
         mongoose.models["user"].find({"login": login},
         function(err, models) {
             if (err) {
-                callback(new Error("Error!"));
+                callback(true);
+                console.log(err);
             } else if(models.length > 0 && models[0].get('password') === password) {
                 callback();
             } else {
-                callback(new Error("Error!"));
+                callback(true);
             }
         });
-    } catch(e){
-        callback(new Error("Error!"));
+    } catch(err){
+        callback(true);
+        console.log(err);
     }  
 }
 
 // Use auth for the REST API
-app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth));
+app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth, config.jwt));
 
 // Define the REST API
-app.use('/pizi-rest', require('./pizi-rest.js'));
+app.use('/pizi-rest', require('./pizi-rest.js')(config.rest));
 
 // Define a static server
 app.use(express.static('Apps'));

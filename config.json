@@ -1,0 +1,18 @@
+{
+	"jwt": {
+		"key": "p!z!K3y",
+		"expire": "1h",
+		"payload":{
+			// Issuer of the token
+			"iss": "http://localhost:8080"
+			// Audience the jwt is intended for
+			//"aud": ""
+			// The typ of content
+			//"typ": ""
+		}
+	},
+	"rest": {
+		"name": "Pizi RESTFull Server",
+		"db": "mongodb://localhost/myapp"
+	}
+}
