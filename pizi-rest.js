@@ -4,7 +4,7 @@ var jwt = require('jsonwebtoken');
 
 module.exports = function(config){
     // Connect to db
-    mongoose.connect(config.db);
+    mongoose.connect(config.db.url);
     
     // Array of Mongoose models
     mongoose.models = mongoose.models || {};

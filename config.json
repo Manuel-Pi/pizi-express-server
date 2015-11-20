@@ -8,6 +8,16 @@
 	},
 	"rest": {
 		"name": "Pizi RESTFull Server",
-		"db": "mongodb://localhost/myapp"
+		"db": {
+			"url": "mongodb://localhost/myapp",
+			"restrictions": {
+				"user": {
+					"write": "admin",
+					"attributes": {
+						"role": "superAdmin"
+					}
+				}
+			}
+		}
 	}
 }
