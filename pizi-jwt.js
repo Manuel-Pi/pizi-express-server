@@ -1,21 +1,22 @@
-var jwt = require('jsonwebtoken');
+"use strict";
+let jwt = require('jsonwebtoken');
 
 // Define errors
-var NotAuthorizedError = new Error("You are not authorized to proceed this operation!");
-var NoCredential = new Error("Provide credential!");
-var BadCredential = new Error("Bad credential, cannot access API!");
+let NotAuthorizedError = new Error("You are not authorized to proceed this operation!");
+let NoCredential = new Error("Provide credential!");
+let BadCredential = new Error("Bad credential!");
 
-module.exports = function(check, config){
-	return function(req, res, next){
-		if(req.path === "/token"){
+module.exports = (check, config) => {
+	return (req, res, next) => {
+		delete req.user;
+		console.log("Req user: " + req.user);
+		if(req.path === config.token.path){
 			if(req.headers.login && req.headers.password){
-				check(req.headers.login, req.headers.password, function(err){
+				check(req.headers.login, req.headers.password, (err, user) => {
 					if(err){
 						res.status(500).json({message: BadCredential.message});
 					} else {
-						var payload = config.payload;
-						payload.user = req.headers.login;
-						var token = jwt.sign(payload, config.key, {expiresIn: config.expire});
+						let token = jwt.sign(Object.assign(config.token.payload, user), config.token.key, {expiresIn: config.token.expire});
 						res.json({
 							jwt: token
 						});
@@ -27,18 +28,27 @@ module.exports = function(check, config){
 		} else if(req.path === "/"){
 			next();
 		} else {
-			var auth = req.headers.authorization;
+			let auth = req.headers.authorization;
 			if(auth && auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)){
-				var token = auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)[1];
-				jwt.verify(token, config.key, function(err, decoded){
-					if(err){
+				let token = auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)[1];
+				jwt.verify(token, config.token.key, (err, decoded) => {
+					decoded = decoded || {};
+					if(err && config.needToken){
 						res.status(500).json({message: err.message});
 					} else {
+						req.user = {
+							user: decoded.user,
+							role: decoded.role
+						};
 						next();
 					}
 				});
 			} else {
-				res.status(500).json({message: NotAuthorizedError.message});
+				if(config.needToken) {
+					res.status(500).json({message: NotAuthorizedError.message});
+				} else {
+					next();
+				}
 			}
 		}
 	}

@@ -2,22 +2,29 @@
 	"port": 8080,
 	"staticServerFolder": "App",
 	"jwt": {
-		"key": "p!z!K3y",
-		"expire": "1h",
-		"payload":{
-			"iss": "http://localhost:8080"
+		"needToken": false,
+		"token": {
+			"path": "/token",
+			"key": "p!z!K3y",
+			"expire": "1h",
+			"payload":{
+				"iss": "http://localhost:8080"
+			}
 		}
 	},
 	"rest": {
 		"name": "Pizi RESTFull Server",
-		"db": {
-			"url": "mongodb://localhost/myapp",
-			"restrictions": {
-				"user": {
-					"write": "admin",
-					"attributes": {
-						"role": "superAdmin"
-					}
+		"db": "mongodb://localhost/myapp",
+		"restrictions": {
+			"all": {
+				"put": "admin",
+				"post": "admin",
+				"delete": "admin"
+			},
+			"user": {
+				"all": "admin",
+				"attributes": {
+					"role": "superAdmin"
 				}
 			}
 		}

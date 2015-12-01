@@ -18,7 +18,7 @@ function checkAuth(login, password, callback){
                 callback(true);
                 console.log(err);
             } else if(models.length > 0 && models[0].get('password') === password) {
-                callback();
+                callback(null, {user: models[0].get('login'), role: models[0].get('role')});
             } else {
                 callback(true);
             }
