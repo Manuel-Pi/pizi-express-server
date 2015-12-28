@@ -15,6 +15,7 @@ module.exports = function(server){
                 socket.user = pseudo;
                 users.push(pseudo);
                 socket.emit('users', users);
+                console.log(users.length);
                 socket.broadcast.emit('users', users);
             } else {
                 socket.disconnect('unauthorized');
@@ -27,10 +28,13 @@ module.exports = function(server){
         
         socket.on('disconnect', function () {
             var i = users.indexOf(socket.user);
+            console.log("disco: " + socket.user);
             if(i > -1){
                 console.log('Deconnexion: ' + users[i]);
-                delete users[i];
+                //delete users[i];
+                users.splice(i, 1);
             }
+            
             socket.broadcast.emit('users', users);
         });
     });
