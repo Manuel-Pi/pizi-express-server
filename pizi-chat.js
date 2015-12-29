@@ -4,26 +4,28 @@ module.exports = function(server){
     var io = require('socket.io').listen(server).of('/pizi-chat');
     
     var users = [];
+    var rooms = ['General'];
 
     // On connection
     io.on('connection', function (socket) {
         
         socket.on('login', function (pseudo) {
-            if(users.indexOf(pseudo) == -1){
-                socket.emit('message', {text: 'Connected!', user: "server"});
-                console.log('Connection: ' + pseudo);
-                socket.user = pseudo;
-                users.push(pseudo);
-                socket.emit('users', users);
-                console.log(users.length);
-                socket.broadcast.emit('users', users);
+            if(pseudo){
+                if(users.indexOf(pseudo) == -1){
+                    socket.user = pseudo;
+                    users.push(pseudo);
+                    console.log('Connection: ' + pseudo);
+                    socket.emit('loginSuccess', {
+                        users: users,
+                        rooms: rooms
+                    });
+                    socket.broadcast.emit('userJoin', pseudo);
+                } else {
+                    socket.emit('unauthorized', {message: 'User already exist!'});
+                } 
             } else {
-                socket.disconnect('unauthorized');
+                socket.emit('unauthorized', {message: 'User cannot be empty!'});
             }
-        });
-        
-        socket.on('message', function (message) {
-            socket.broadcast.emit('message', message);
         });
         
         socket.on('disconnect', function () {
@@ -34,8 +36,12 @@ module.exports = function(server){
                 //delete users[i];
                 users.splice(i, 1);
             }
-            
-            socket.broadcast.emit('users', users);
+            socket.broadcast.emit('userLeft', socket.user);
         });
+        
+        socket.on('message', function (message) {
+            socket.broadcast.emit('message', message);
+        });
+        
     });
 }
