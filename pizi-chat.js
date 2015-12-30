@@ -4,7 +4,18 @@ module.exports = function(server){
     var io = require('socket.io').listen(server).of('/pizi-chat');
     
     var users = [];
-    var rooms = ['General'];
+    var rooms = [{
+        id: 'general',
+        name: 'General',
+        authorized: 'All',
+        connected: []
+    },
+    {
+        id: 'other',
+        name: 'Other',
+        authorized: 'All',
+        connected: []
+    }];
 
     // On connection
     io.on('connection', function (socket) {
@@ -39,8 +50,33 @@ module.exports = function(server){
             socket.broadcast.emit('userLeft', socket.user);
         });
         
+        socket.on('joinRoom', function (roomId) {
+            for(var room of rooms){
+                if(room.id === roomId){
+                    if(room.authorized === "All" || room.authorized.indexOf(socket.user) > -1){
+                        socket.join(roomId);
+                        room.connected.push(socket.user);
+                        socket.broadcast.to(roomId).emit('userJoinRoom', {roomId: roomId, user: socket.user});
+                        console.log(socket.user + " join room: " + roomId);
+                    }
+                    break;
+                }
+            }
+        });
+        
+        socket.on('leaveRoom', function (roomId) {
+             for(var room of rooms){
+                if(room.id === roomId){
+                    socket.leave(roomId);
+                    room.connected.slice(room.connected.indexOf(socket.user), 1);
+                    socket.broadcast.to(roomId).emit('userLeaveRoom', {roomId: roomId, user: socket.user});
+                    console.log(socket.user + " leave room: " + roomId);
+                }
+             }
+        });
+        
         socket.on('message', function (message) {
-            socket.broadcast.emit('message', message);
+            socket.broadcast.to(message.roomId).emit('message', message);
         });
         
     });
