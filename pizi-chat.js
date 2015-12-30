@@ -41,10 +41,8 @@ module.exports = function(server){
         
         socket.on('disconnect', function () {
             var i = users.indexOf(socket.user);
-            console.log("disco: " + socket.user);
             if(i > -1){
-                console.log('Deconnexion: ' + users[i]);
-                //delete users[i];
+                console.log('Deconnexion: ' + users[i])
                 users.splice(i, 1);
             }
             socket.broadcast.emit('userLeft', socket.user);
