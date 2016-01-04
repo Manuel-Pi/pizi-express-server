@@ -63,7 +63,6 @@ module.exports = function(server){
             var i = rooms.length;
             while(i--){
                 var room = rooms[i];
-                console.log(room);
                 if((room.authorized === "All" || room.author === socket.user || room.authorized.indexOf(user) > -1) && (!roomId || roomId === room.id)){
                    room.connected.splice(room.connected.indexOf(user), 1);
                    socket.broadcast.to(room.id).emit('userLeaveRoom', {roomId: room.id, user: user});
@@ -93,10 +92,10 @@ module.exports = function(server){
         socket.on('addRoom', function(room){
             if(room) {
                 room.connected = [];
+                socket.emit('roomAdded', room);
                 if(room.authorized === 'All'){
-                    io.sockets.emit('roomAdded', room);
+                    socket.broadcast.emit('roomAdded', room);
                 } else {
-                    socket.emit('roomAdded', room);
                     for(so of io.sockets){
                         if(room.authorized.indexOf(so.user) !== -1 && socket.id !== so.id){
                             so.emit('roomAdded', room);
