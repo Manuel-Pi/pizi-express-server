@@ -46,9 +46,10 @@ module.exports = function(server){
         socket.on('joinRoom', function (roomId) {
             for(var room of rooms){
                 if(room.id === roomId){
-                    if(room.authorized === "All" || room.authorized.indexOf(socket.user) > -1){
+                    if(room.authorized === "All" || room.author === socket.user || room.authorized.indexOf(socket.user) > -1){
                         socket.join(roomId);
                         socket.emit('roomData', room);
+                        room.connected = room.connected || [];
                         room.connected.push(socket.user);
                         socket.broadcast.to(roomId).emit('userJoinRoom', {roomId: roomId, user: socket.user});
                         console.log(socket.user + " join room: " + roomId);
@@ -63,11 +64,10 @@ module.exports = function(server){
             while(i--){
                 var room = rooms[i];
                 console.log(room);
-                if((room.authorized === "All" || room.authorized.indexOf(user) > -1) && (!roomId || roomId === room.id)){
+                if((room.authorized === "All" || room.author === socket.user || room.authorized.indexOf(user) > -1) && (!roomId || roomId === room.id)){
                    room.connected.splice(room.connected.indexOf(user), 1);
                    socket.broadcast.to(room.id).emit('userLeaveRoom', {roomId: room.id, user: user});
                    console.log(user + " leave room: " + room.id);
-                   console.log(room);
                    if(room.connected.length === 0 && room.authorized !== 'All'){
                        rooms.splice(i, 1);
                        console.log("Room " + room.name + " closed because no one's left!");
@@ -94,8 +94,9 @@ module.exports = function(server){
             if(room) {
                 room.connected = [];
                 if(room.authorized === 'All'){
-                    socket.broadcast.emit('roomAdded', room);
+                    io.sockets.emit('roomAdded', room);
                 } else {
+                    socket.emit('roomAdded', room);
                     for(so of io.sockets){
                         if(room.authorized.indexOf(so.user) !== -1 && socket.id !== so.id){
                             so.emit('roomAdded', room);
@@ -104,14 +105,13 @@ module.exports = function(server){
                 }
                 rooms.push(room);
                 console.log("Room created");
-                console.log(room);
             }
         });
         
         socket.on('getRooms', function () {
             var authorizedRooms = [];
             for(var room of rooms){
-                if(room.authorized === "All" || room.authorized.indexOf(socket.user) !== -1){
+                if(room.authorized === "All" || room.author === socket.user || room.authorized.indexOf(socket.user) !== -1){
                     authorizedRooms.push(room);
                 }
             }
