@@ -8,13 +8,13 @@
 			"key": "p!z!K3y",
 			"expire": "1h",
 			"payload":{
-				"iss": "http://localhost:8080"
+				"iss": "http://localhost:8087"
 			}
 		}
 	},
 	"rest": {
 		"name": "Pizi RESTFull Server",
-		"db": "mongodb://localhost/myapp",
+		"db": "mongodb://localhost/test",
 		"restrictions": {
 			"all": {
 				"put": "admin",
@@ -28,5 +28,8 @@
 				}
 			}
 		}
+	},
+	"utils":{
+		
 	}
 }

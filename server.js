@@ -40,6 +40,9 @@ app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth, config.jwt));
 // Define the REST API
 app.use('/pizi-rest', require('./pizi-rest.js')(config.rest));
 
+// Add server utils
+app.use('/utils', require('./pizi-server-utils.js')(config.utils));
+
 // Define a static server
 app.use(express.static(config.staticServerFolder));
 

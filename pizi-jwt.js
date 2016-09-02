@@ -9,7 +9,6 @@ let BadCredential = new Error("Bad credential!");
 module.exports = (check, config) => {
 	return (req, res, next) => {
 		delete req.user;
-		console.log("Req user: " + req.user);
 		if(req.path === config.token.path){
 			if(req.headers.login && req.headers.password){
 				check(req.headers.login, req.headers.password, (err, user) => {

@@ -89,7 +89,7 @@ module.exports = (config) => {
         if(checkRight(req, res, "get", store)){
             try{
                 let Model = getMoogouseModel(store); 
-                Model.find((err, models) => {
+                Model.find( req.query, (err, models) => {
                     if (err) {
                         res.status(500).json({message: OperationError.message});
                         console.log(err);
@@ -151,7 +151,6 @@ module.exports = (config) => {
                         res.status(500).json({message: OperationError.message});
                         console.log(err);
                     } else {
-                        console.log(req.body);
                         for(var attribute in req.body){
                             model.set(attribute, req.body[attribute], {strict: false});
                         }
