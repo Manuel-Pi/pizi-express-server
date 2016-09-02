@@ -1,6 +1,6 @@
 {
 	"port": 8087,
-	"staticServerFolder": "Apps",
+	"staticServerFolder": "../PiziServer",
 	"jwt": {
 		"needToken": false,
 		"token": {
