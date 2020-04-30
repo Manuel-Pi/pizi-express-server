@@ -36,7 +36,7 @@ module.exports = function(server){
         socket.on('join', gameName => {
             let game = GAMES[gameName];
             let player = PLAYERS[socket.player];
-            if(!game || !player || updatePlayer(player, game)) return;
+            if(!game || !player || updatePlayer(player, game) || game.action) return;
 
             socket.game = gameName;
             game.players.push({
@@ -47,7 +47,7 @@ module.exports = function(server){
                 ready: false
             });
 
-            io.emit('gameInfo', getPublicGameInfo(game));
+            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
             io.emit('setGames', getPublicGames(GAMES));
         });
 
@@ -60,12 +60,14 @@ module.exports = function(server){
             // If all ready
             if(game.players.reduce((ready, player) => ready && player.ready, true)){
                 startGame(game);
+                socket.emit('setGames', getPublicGames(GAMES));
                 game.players.forEach( player => {
                     io.sockets[player.id].emit('setHand', player.hand);
                 });
+                console.log(" pick length " + JSON.stringify(game.pickStack.length));
             }
 
-            io.emit('gameInfo', getPublicGameInfo(game));
+            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
         });
 
         socket.on('pick', cards => {
@@ -82,8 +84,12 @@ module.exports = function(server){
 
             let card = null;
             // Pick card
-            if(cards && cards.length && contains(cards[0], game.playedCards[game.playedCards.length - 2])){
+            let lastPlayed = game.playedCards[game.playedCards.length - 2];
+            console.log("Last played " + JSON.stringify(lastPlayed));
+            if(cards && cards.length && contains(cards[0], lastPlayed)){
                 card = cards[0];
+                lastPlayed = lastPlayed.filter(c => (c.value !== card.value) ||  (c.color !== card.color));
+                console.log("Last played filtered" + JSON.stringify(lastPlayed));
             } else if(!cards) {
                 card = game.pickStack.splice(0,1)[0];
             }
@@ -94,11 +100,13 @@ module.exports = function(server){
             }
             
             player.hand =[...player.hand, card];
+            game.pickStack = game.pickStack.concat(lastPlayed);
             console.log(player.name + " pick " + JSON.stringify(card));
+            console.log("pick length " + JSON.stringify(game.pickStack.length));
             updatePlayer(player, game);
             nextAction(game);
             socket.emit('setHand', player.hand);
-            io.emit('gameInfo', getPublicGameInfo(game));
+            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
         });
 
         socket.on('play', cards => {
@@ -113,13 +121,12 @@ module.exports = function(server){
             if(socket.player !== game.currentPlayer || game.action !== "play") return;
 
             // Check played cards
-            if(!checkPlayedCards(cards)){
+            if(!checkPlayedCards(originalCards)){
                 socket.emit('notAllowed');
                 return;
             } 
 
             // If validation succeed, set hand
-            player = updatePlayer(player, game);
             player.hand = player.hand.filter(userCard => {
                 let found = null;
                 
@@ -137,10 +144,10 @@ module.exports = function(server){
                 updatePlayer(player, game);
                 nextAction(game);
                 game.playedCards.push(originalCards);
-                game.pickStack = [].concat.apply(game.pickStack, game.playedCards);
                 socket.emit('setHand', player.hand);
-                io.emit('gameInfo', getPublicGameInfo(game));
+                game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
                 console.log(player.name + " played " + JSON.stringify(originalCards));
+                console.log(" pick length " + JSON.stringify(game.pickStack.length));
             } else {
                 console.error("Cards are not matching what server excpect! " + JSON.stringify(cards));
             }
@@ -162,13 +169,20 @@ module.exports = function(server){
                     name: game.name,
                     players: game.players
                 }, true);*/
-                io.emit('gameEnd', scores);
-                io.emit('gameInfo', getPublicGameInfo(game, true));
+                game.players.forEach(player => io.sockets[player.id].emit('gameEnd', scores));
+                game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game, true)));
             }
         });
 
         socket.on('disconnect', function(reason){
             console.log(socket.player + ' disconnected because ' + reason);
+
+            let game = GAMES[socket.game];
+            let player = updatePlayer(PLAYERS[socket.player], game);
+            if(!player) return;
+
+            kickPlayer(player, game);
+            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
          });
     });
 }
@@ -247,8 +261,16 @@ const startGame = (game) => {
     game.currentPlayer = game.players[0].name;
     game.action = "play";
     // Distribute
+    game.pickStack = cardGame.shuffle(game.pickStack);
     game.players.forEach(player => player.hand = game.pickStack.splice(0,7));
     game.playedCards = [game.pickStack.splice(0,1)];
+}
+
+const kickPlayer = (player, game) => {
+    game.pickStack.concat(player.hand);
+    const index = game.players.indexOf(player);
+    if(game.currentPlayer === player.name) game.currentPlayer = index + 1 < game.players.length ? game.players[index + 1].name : 0;
+    if(index !== -1) game.players.splice(index, 1);
 }
 
 const contains = (card, cards) => {
@@ -296,7 +318,7 @@ const getPublicGames = (games) => Object.keys(games).map(name => {
     return {
         name,
         players: gameInfo.players,
-        status: gameInfo.action ? "running" : "waiting"
+        action: gameInfo.action
     }
 })
 
