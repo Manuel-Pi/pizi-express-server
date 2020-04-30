@@ -54,3 +54,5 @@ server.listen(config.port, function () {
 
 // Add WebSocket Chat
 require('./pizi-chat.js')(server);
+
+require('./pizi-moins-de-neuf.js')(server);
