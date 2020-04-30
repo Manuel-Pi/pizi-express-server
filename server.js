@@ -38,7 +38,7 @@ app.use(require('body-parser').json());
 //app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth, config.jwt));
 
 // Define the REST API
-app.use('/pizi-rest', require('./pizi-rest.js')(config.rest));
+//app.use('/pizi-rest', require('./pizi-rest.js')(config.rest));
 
 // Add server utils
 app.use('/utils', require('./pizi-server-utils.js')(config.utils));
