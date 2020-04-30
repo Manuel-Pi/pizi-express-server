@@ -1,6 +1,6 @@
 {
-  "name": "ServerExpress",
-  "version": "0.0.0",
+  "name": "pizi-express-server",
+  "version": "1.0.0",
   "description": "Simple RESTFull server",
   "main": "server.js",
   "scripts": {
@@ -14,5 +14,8 @@
     "jsonwebtoken": "^5.4.1",
     "mongoose": "~3.6.13",
     "socket.io": "^1.3.7"
+  },
+  "engines": {
+    "node": "13.x"
   }
 }
