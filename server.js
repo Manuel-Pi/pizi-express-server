@@ -46,9 +46,11 @@ app.use('/utils', require('./pizi-server-utils.js')(config.utils));
 // Define a static server
 app.use(express.static(config.staticServerFolder));
 
+const port = process.env.PORT || config.port;
+
 // Get launch HTTP server
 var server = require('http').createServer(app);
-server.listen(config.port, function () {
+server.listen(port, function () {
     console.log('Server started on port ' + config.port + '...');
 });
 
