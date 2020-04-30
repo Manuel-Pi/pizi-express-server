@@ -35,7 +35,7 @@ var app = express();
 app.use(require('body-parser').json());
 
 // Use auth for the REST API
-app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth, config.jwt));
+//app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth, config.jwt));
 
 // Define the REST API
 app.use('/pizi-rest', require('./pizi-rest.js')(config.rest));
