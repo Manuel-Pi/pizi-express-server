@@ -8,6 +8,7 @@ module.exports = (config) => {
     config = config || {restrictions: {}};
     
     // Connect to db
+    const db = process.env.MONGODB_URI || config.db;
     mongoose.connect(config.db);
     
     // Array of Mongoose models

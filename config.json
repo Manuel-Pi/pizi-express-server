@@ -14,7 +14,7 @@
 	},
 	"rest": {
 		"name": "Pizi RESTFull Server",
-		"db": "mongodb://localhost/test",
+		"db": "mongodb://0.0.0.0/test",
 		"restrictions": {
 			"all": {
 				"put": "admin",
