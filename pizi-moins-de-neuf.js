@@ -3,7 +3,8 @@ var cardGame = require('./pizi-card-game.js');
 module.exports = function(server){
 
     // Get io for a specific namespace
-    const io = require('socket.io').listen(server).of('/pizi-moins-de-neuf');
+    const io = require('socket.io')(server).of('/pizi-moins-de-neuf');
+
     
     let CONNEXION_ON = true;
     let PLAYERS = {};
