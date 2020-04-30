@@ -51,7 +51,7 @@ const port = process.env.PORT || config.port;
 // Get launch HTTP server
 var server = require('http').createServer(app);
 server.listen(port, function () {
-    console.log('Server started on port ' + config.port + '...');
+    console.log('Server started on port ' + port + '...');
 });
 
 // Add WebSocket Chat
