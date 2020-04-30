@@ -1,3 +1,4 @@
+var fs = require('fs');
 var express = require('express');
 //var mongoose   = require('mongoose');
 
@@ -55,6 +56,6 @@ server.listen(port, function () {
 });
 
 // Add WebSocket Chat
-require('./pizi-chat.js')(server);
+//require('./pizi-chat.js')(server);
 
 require('./pizi-moins-de-neuf.js')(server);
