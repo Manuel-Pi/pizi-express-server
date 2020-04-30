@@ -1,14 +1,14 @@
 var express = require('express');
-var mongoose   = require('mongoose');
+//var mongoose   = require('mongoose');
 
 // Get config file
 var config = require('./config.json');
 
 // --------------------- AUTHENTIFICATION ---------------------------------
 // Array of Mongoose models
-mongoose.models = mongoose.models || {};
+//mongoose.models = mongoose.models || {};
 // Set user model for auth
-mongoose.models["user"] = mongoose.model("user", new mongoose.Schema());
+//mongoose.models["user"] = mongoose.model("user", new mongoose.Schema());
 // Define the authentification function
 function checkAuth(login, password, callback){
     try{
