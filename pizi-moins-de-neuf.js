@@ -9,6 +9,7 @@ module.exports = function(server){
     let CONNEXION_ON = true;
     let PLAYERS = {};
     let GAMES = {};
+    let KICKABLE_PLAYERS = {};
 
     // On connection
     io.on('connection', function (socket) {
@@ -174,6 +175,42 @@ module.exports = function(server){
             }
         });
 
+        socket.on('reconnectUser', function(username){
+            if(!username) return;
+
+            console.log(socket.username + ' try to reconnect!');
+
+            PLAYERS[username] = {
+                id: socket.id,
+                name: username,
+            };
+            
+            socket.player = username;
+
+            if(username === "pizi" && !GAMES["Les Potos"]){
+                createGame(GAMES, {
+                    name: "Les Potos"
+                }, true);
+            }
+
+            socket.emit('setGames', getPublicGames(GAMES));
+
+            Object.keys(GAMES).forEach(name => {
+                let g = GAMES[name];
+                g.players.forEach(player => {
+                    if(player.name === username){
+                        socket.game = g;
+                        player.id = socket.id;
+                        io.sockets[player.id].emit('gameInfo', getPublicGameInfo(g));
+                        io.sockets[player.id].emit('setHand', player.hand);
+                        if(KICKABLE_PLAYERS[username]) delete KICKABLE_PLAYERS[username];
+                        return;
+                    }
+                });
+
+            });
+         });
+
         socket.on('disconnect', function(reason){
             console.log(socket.player + ' disconnected because ' + reason);
 
@@ -181,8 +218,8 @@ module.exports = function(server){
             let player = updatePlayer(PLAYERS[socket.player], game);
             if(!player) return;
 
-            kickPlayer(player, game);
-            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
+            KICKABLE_PLAYERS[player.name] = setTimeout( () => kickPlayer(player, game), 1500000);
+            game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
          });
     });
 }

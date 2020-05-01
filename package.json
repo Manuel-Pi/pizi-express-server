@@ -4,7 +4,6 @@
   "description": "Simple RESTFull server",
   "main": "server.js",
   "scripts": {
-    "postinstall": "npm run deployApps",
     "deployApps": "cp -R ./apps/* ./ROOT",
     "deployAppsDev": "cp -R ./apps/* ./ROOT  && node ./deployAppsDev.js",
     "start": "node ./server.js",
