@@ -251,7 +251,7 @@ module.exports = function(server){
             let player = updatePlayer(PLAYERS[socket.player], game);
             if(!player) return;
 
-            KICKABLE_PLAYERS[player.name] = setTimeout( () => kickPlayer(player, game, GAMES), 30000, this);
+            //KICKABLE_PLAYERS[player.name] = setTimeout( () => kickPlayer(player, game, GAMES), 30000, this);
             game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
             io.emit('setGames', getPublicGames(GAMES));
          });
@@ -333,6 +333,19 @@ const endGame = (game, callingPlayer) => {
     game.currentPlayer = null;
 
     return {scores, winners};
+}
+
+const quickPlay = (player, card, game) => {
+    let nextIndex = game.players.indexOf(player) + 1;
+    nextIndex = index < game.players.length ? index : 0;
+
+    const nextPlayer = game.players[nextIndex];
+
+    if(nextPlayer.name === game.currentPlayer){
+
+    }
+
+
 }
 
 const startGame = (game) => {
