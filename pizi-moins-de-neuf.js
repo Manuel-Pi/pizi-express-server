@@ -44,6 +44,7 @@ module.exports = function(server){
             });
 
             game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
+            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
             io.emit('setGames', getPublicGames(GAMES));
         });
 
@@ -219,6 +220,7 @@ module.exports = function(server){
                     if(player.name === username){
                         socket.game = g.name;
                         player.id = socket.id;
+                        socket.emit('gameInfo', getPublicGameInfo(g));
                         socket.emit('gameInfo', getPublicGameInfo(g));
                         socket.emit('setHand', player.hand);
                         if(KICKABLE_PLAYERS[username]){
