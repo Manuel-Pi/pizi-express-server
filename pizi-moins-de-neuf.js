@@ -178,7 +178,7 @@ module.exports = function(server){
         socket.on('reconnectUser', function(username){
             if(!username) return;
 
-            console.log(socket.username + ' try to reconnect!');
+            console.log(username + ' try to reconnect!');
 
             PLAYERS[username] = {
                 id: socket.id,
@@ -199,11 +199,12 @@ module.exports = function(server){
                 let g = GAMES[name];
                 g.players.forEach(player => {
                     if(player.name === username){
-                        socket.game = g;
+                        socket.game = g.name;
                         player.id = socket.id;
                         io.sockets[player.id].emit('gameInfo', getPublicGameInfo(g));
                         io.sockets[player.id].emit('setHand', player.hand);
                         if(KICKABLE_PLAYERS[username]) delete KICKABLE_PLAYERS[username];
+                        console.log(username + ' successfully reconnected!');
                         return;
                     }
                 });
@@ -218,8 +219,9 @@ module.exports = function(server){
             let player = updatePlayer(PLAYERS[socket.player], game);
             if(!player) return;
 
-            KICKABLE_PLAYERS[player.name] = setTimeout( () => kickPlayer(player, game), 1500000);
+            KICKABLE_PLAYERS[player.name] = setTimeout( () => kickPlayer(player, game, GAMES), 60000, this);
             game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
+            io.emit('setGames', getPublicGames(GAMES));
          });
     });
 }
@@ -266,7 +268,10 @@ const endGame = (game, callingPlayer) => {
         if(isWinner){
             if(isCaller){
                 player.scoreStreak++;
-                if(player.scoreStreak > 2) player.score = player.score - 50;
+                if(player.scoreStreak > 2){
+                    player.score = player.score - 50;
+                    player.scoreStreak = 0;
+                }
             }
         } else {
             // Get jokers
@@ -303,11 +308,14 @@ const startGame = (game) => {
     game.playedCards = [game.pickStack.splice(0,1)];
 }
 
-const kickPlayer = (player, game) => {
+const kickPlayer = (player, game, games) => {
+    console.log("Kick " + player.name);
     game.pickStack.concat(player.hand);
     const index = game.players.indexOf(player);
     if(game.currentPlayer === player.name) game.currentPlayer = index + 1 < game.players.length ? game.players[index + 1].name : 0;
     if(index !== -1) game.players.splice(index, 1);
+
+    if(game.players.length === 0 && games) delete games[game.name];
 }
 
 const contains = (card, cards) => {
