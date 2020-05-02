@@ -230,6 +230,7 @@ module.exports = function(server){
                     }
                 });
             });
+            socket.emit('setGames', getPublicGames(GAMES));
          });
 
         socket.on('quit', () => {
