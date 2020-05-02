@@ -25,12 +25,7 @@ module.exports = function(server){
             socket.player = name;
             console.log('Connexion of : ' + name);
 
-            if(name === "pizi"){
-                createGame(GAMES, {
-                    name: "Les Potos"
-                }, true);
-            } 
-
+            CreateDefaultGameIfDoNotExist(GAMES);
             socket.emit('setGames', getPublicGames(GAMES));
         });
 
@@ -69,6 +64,34 @@ module.exports = function(server){
             }
 
             game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
+        });
+
+        socket.on('selectPick', cards => {
+            let game = GAMES[socket.game];
+            let player = updatePlayer(PLAYERS[socket.player], game);
+            if(!player) return;
+
+            // Not the good player, should not happen front-end should block!
+            if(socket.player !== game.currentPlayer || game.action !== "pick") return;
+
+            // Already have the maximum cards
+            player = updatePlayer(player, game);
+            if(player.hand.length > 6) return;
+
+            let card = null;
+            if(cards && cards[0] && cards[0].value === "0" && cards[0].color === "heart") card = cards[0];
+            // Pick card
+            let lastPlayed = [...game.playedCards[game.playedCards.length - 2]];
+            console.log("Last played " + JSON.stringify(lastPlayed));
+            if(!card && cards && cards.length && contains(cards[0], lastPlayed)){
+                card = cards[0];
+                lastPlayed = lastPlayed.filter(c => (c.value !== card.value) ||  (c.color !== card.color));
+                console.log("Last played filtered" + JSON.stringify(lastPlayed));
+            }
+            
+            console.log(player.name + " select pick " + JSON.stringify(card));
+            console.log("pick length " + JSON.stringify(game.pickStack.length));
+            socket.broadcast.emit('selectedPick', card);
         });
 
         socket.on('pick', cards => {
@@ -187,12 +210,7 @@ module.exports = function(server){
             
             socket.player = username;
 
-            if(username === "pizi" && !GAMES["Les Potos"]){
-                createGame(GAMES, {
-                    name: "Les Potos"
-                }, true);
-            }
-
+            CreateDefaultGameIfDoNotExist(GAMES);
             socket.emit('setGames', getPublicGames(GAMES));
 
             Object.keys(GAMES).forEach(name => {
@@ -201,29 +219,46 @@ module.exports = function(server){
                     if(player.name === username){
                         socket.game = g.name;
                         player.id = socket.id;
-                        io.sockets[player.id].emit('gameInfo', getPublicGameInfo(g));
-                        io.sockets[player.id].emit('setHand', player.hand);
-                        if(KICKABLE_PLAYERS[username]) delete KICKABLE_PLAYERS[username];
+                        socket.emit('gameInfo', getPublicGameInfo(g));
+                        socket.emit('setHand', player.hand);
+                        if(KICKABLE_PLAYERS[username]){
+                            clearTimeout(KICKABLE_PLAYERS[username]);
+                            delete KICKABLE_PLAYERS[username];
+                        }
                         console.log(username + ' successfully reconnected!');
                         return;
                     }
                 });
-
             });
          });
 
-        socket.on('disconnect', function(reason){
-            console.log(socket.player + ' disconnected because ' + reason);
-
+        socket.on('quit', () => {
             let game = GAMES[socket.game];
             let player = updatePlayer(PLAYERS[socket.player], game);
             if(!player) return;
 
-            KICKABLE_PLAYERS[player.name] = setTimeout( () => kickPlayer(player, game, GAMES), 60000, this);
+            kickPlayer(player, game, GAMES);
+            game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
+            io.emit('setGames', getPublicGames(GAMES));
+        });
+
+        socket.on('disconnect', function(reason){
+            console.log(socket.player + ' disconnected because ' + reason);
+            let game = GAMES[socket.game];
+            let player = updatePlayer(PLAYERS[socket.player], game);
+            if(!player) return;
+
+            KICKABLE_PLAYERS[player.name] = setTimeout( () => kickPlayer(player, game, GAMES), 30000, this);
             game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
             io.emit('setGames', getPublicGames(GAMES));
          });
     });
+}
+
+const CreateDefaultGameIfDoNotExist = (games) => {
+    if(!Object.keys(games).length || !games["Général"]){
+        createGame(games, {name: "Général"}, true);
+    }
 }
 
 const createGame = (games, {name, authorized = 'All'}, force = false) => {
@@ -303,7 +338,7 @@ const startGame = (game) => {
     game.currentPlayer = game.players[0].name;
     game.action = "play";
     // Distribute
-    game.pickStack = cardGame.shuffle(game.pickStack);
+    game.pickStack = cardGame.generateCards();
     game.players.forEach(player => player.hand = game.pickStack.splice(0,7));
     game.playedCards = [game.pickStack.splice(0,1)];
 }
@@ -315,7 +350,7 @@ const kickPlayer = (player, game, games) => {
     if(game.currentPlayer === player.name) game.currentPlayer = index + 1 < game.players.length ? game.players[index + 1].name : 0;
     if(index !== -1) game.players.splice(index, 1);
 
-    if(game.players.length === 0 && games) delete games[game.name];
+    if(game.players.length === 0 && games) createGame(games, {name: game.name}, true);
 }
 
 const contains = (card, cards) => {
