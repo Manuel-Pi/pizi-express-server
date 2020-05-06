@@ -15,6 +15,16 @@ db.once('open', () => {
     console.log('Database successfully connected!');
 });
 
+/*--------------------- EXPRESS MODULES ---------------------------------*/
+
+// Get express instance
+var app = express();
+// Use body parser to parse json from request body
+app.use(require('body-parser').json());
+
+// Define a static server
+app.use(express.static(config.staticServerFolder));
+
 // Define the authentification function
 function checkAuth(login, password, callback){
     try{
@@ -34,16 +44,6 @@ function checkAuth(login, password, callback){
         console.log(err);
     }  
 }
-
-/*--------------------- EXPRESS MODULES ---------------------------------*/
-
-// Get express instance
-var app = express();
-// Use body parser to parse json from request body
-app.use(require('body-parser').json());
-
-// Define a static server
-app.use(express.static(config.staticServerFolder));
 
 // Use auth for the REST API
 //app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth, config.jwt));
