@@ -1,27 +1,26 @@
 "use strict";
 let express = require('express');
 let mongoose   = require('mongoose');
-let piziJwt = require('./pizi-jwt.js');
 
 module.exports = (config) => {
     
     config = config || {restrictions: {}};
     
-    // Connect to db
-    const db = process.env.MONGODB_URI || config.db;
-    mongoose.connect(config.db);
-    
     // Array of Mongoose models
     mongoose.models = mongoose.models || {};
     
     // Create dynamic Mongoose model
-    function getMoogouseModel(path){
+    function getMoogouseModel(name){
         let Model;
-        if(!mongoose.models[path]){
-            Model = mongoose.model(path, new mongoose.Schema());
-            mongoose.models[path] = Model;
-        } else {
-            Model = mongoose.models[path];
+        try{
+            Model = require('./database/models/' + name);
+        } catch(e){
+            console.log("No model matching: " + name);
+        }
+        
+        if(!Model){
+            Model = mongoose.model(name, new mongoose.Schema());
+            mongoose.models[name] = Model;
         }
         return Model;
     }

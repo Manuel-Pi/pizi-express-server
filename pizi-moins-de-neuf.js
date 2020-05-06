@@ -32,7 +32,7 @@ module.exports = function(server){
         socket.on('join', gameName => {
             let game = GAMES[gameName];
             let player = PLAYERS[socket.player];
-            if(!game || !player || updatePlayer(player, game) || game.action) return;
+            if(!game || !player || updatePlayer(player, game) || game.action || game.players.length > 6) return;
 
             socket.game = gameName;
             game.players.push({
@@ -43,6 +43,7 @@ module.exports = function(server){
                 ready: false
             });
 
+            // QUICK FIX: Twice because of UI
             game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
             game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
             io.emit('setGames', getPublicGames(GAMES));
@@ -123,6 +124,9 @@ module.exports = function(server){
                 console.error("Not card matching pick!");
                 return;
             }
+
+            const qp= quickPlay(player, [card], game);
+            game.quikPlay = qp;
             
             player.hand =[...player.hand, card];
             game.pickStack = game.pickStack.concat(lastPlayed);
@@ -137,16 +141,19 @@ module.exports = function(server){
         socket.on('play', cards => {
             let game = GAMES[socket.game];
             let player = updatePlayer(PLAYERS[socket.player], game);
-            if(!player) return;
+            if(!player || game.action !== "play") return;
 
             console.log(socket.player + " wants to play " + JSON.stringify(cards));
             var originalCards = [...cards];
 
+            // Is it a quick play ?
+            const qp = game.quickPlay;
+
             // Not the good player, should not happen front-end should block!
-            if(socket.player !== game.currentPlayer || game.action !== "play") return;
+            if(socket.player !== game.currentPlayer && !qp) return;
 
             // Check played cards
-            if(!checkPlayedCards(originalCards)){
+            if(!qp && !checkPlayedCards(originalCards)){
                 socket.emit('notAllowed');
                 return;
             } 
@@ -167,8 +174,15 @@ module.exports = function(server){
             
             if(!cards.length){
                 updatePlayer(player, game);
-                nextAction(game);
-                game.playedCards.push(originalCards);
+
+                if(qp){
+                    let lastPlay = game.playedCards[game.playedCards - 1];
+                    lastPlay = lastPlay.concat(originalCards);
+                    game.quickPlay = false;
+                } else {
+                    nextAction(game);
+                    game.playedCards.push(originalCards);
+                }
                 socket.emit('setHand', player.hand);
                 game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
                 console.log(player.name + " played " + JSON.stringify(originalCards));
@@ -189,11 +203,6 @@ module.exports = function(server){
             const scores = endGame(game, player.name);
             console.log("Scores: " + JSON.stringify(scores));
             if(scores.winners.names.length){
-                /*
-                createGame(GAMES, {
-                    name: game.name,
-                    players: game.players
-                }, true);*/
                 game.players.forEach(player => io.sockets[player.id].emit('gameEnd', scores));
                 game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game, true)));
             }
@@ -275,7 +284,9 @@ const createGame = (games, {name, authorized = 'All'}, force = false) => {
         playedCards: [],
         pickStack: cardGame.generateCards(),
         currentPlayer: null,
-        action: null
+        action: null,
+        turn: 0,
+        quikPlay: false
     }
 }
 
@@ -335,17 +346,17 @@ const endGame = (game, callingPlayer) => {
     return {scores, winners};
 }
 
-const quickPlay = (player, card, game) => {
+const quickPlay = (player, cards, game) => {
+    if(game.turn === 0) return false;
     let nextIndex = game.players.indexOf(player) + 1;
-    nextIndex = index < game.players.length ? index : 0;
-
+    nextIndex = nextIndex < game.players.length ? nextIndex : 0;
     const nextPlayer = game.players[nextIndex];
 
-    if(nextPlayer.name === game.currentPlayer){
-
+    if(nextPlayer.name === game.currentPlayer && checkPlayedCards([...game.playedCards[game.playedCards.length - 1], ...cards])){
+        return true;
     }
 
-
+    return false;
 }
 
 const startGame = (game) => {
@@ -392,7 +403,12 @@ const nextAction = (game)=> {
         case "pick":
             for(let i = 0; i < game.players.length; i++){
                 if(game.players[i].name === game.currentPlayer){
-                    game.currentPlayer = i + 1 < game.players.length ? game.players[i + 1].name :  game.players[0].name;
+                    if(i + 1 < game.players.length ){
+                        game.currentPlayer =  game.players[i + 1].name 
+                        game.turn++;
+                    } else {
+                        game.currentPlayer = game.players[0].name;
+                    } 
                     game.action = "play";
                     return;
                 }
@@ -428,7 +444,9 @@ const getPublicGameInfo = (game, gameFinished = false)=> {
             score: player.score,
             scoreStreak: player.scoreStreak,
             ready: player.ready,
-            hand: gameFinished ? player.hand : []
+            hand: gameFinished ? player.hand : [],
+            turn: game.turn,
+            quikPlay: game.quikPlay
         }
     });
 
@@ -478,8 +496,7 @@ const checkPlayedCards = (originalcards) => {
         return true;
 
     } else if(originalcards.length > 2){
-        
-        // Change As value if needed
+        // Change As value if needed (only one 1 could be there)
         if(cardGame.getValue(cards[0]) === 1 && cardGame.getValue(cards[1]) > 4){
             cards[0].value === "14";
             cardGame.sort(cards);
@@ -494,11 +511,12 @@ const checkPlayedCards = (originalcards) => {
 
             // Check color
             if(cards[i - 1].color !== cards[i].color) return false;
-            
+
             // Logic order
             if(diff === 1) continue;
 
-            jokers = diff - jokers - 1;
+            // Use joker
+            jokers = jokers - diff - 1;
             if(jokers < 0) return false;
         }
         return true;
