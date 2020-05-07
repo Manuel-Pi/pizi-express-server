@@ -1,6 +1,6 @@
 var fs = require('fs');
 var express = require('express');
-var mongoose   = require('mongoose');
+var mongoose = require('mongoose');
 
 // Get config file
 var config = require('./config.json');
@@ -8,6 +8,10 @@ var config = require('./config.json');
 /*--------------------- DATABASE ---------------------------------*/
 
 // Connect to db
+mongoose.set('useNewUrlParser', true);
+mongoose.set('useFindAndModify', false);
+mongoose.set('useCreateIndex', true);
+mongoose.set('useUnifiedTopology', true);
 mongoose.connect(process.env.MONGODB_URI || config.db);
 var db = mongoose.connection;
 db.on('error', e => console.log('Database connection error:' + e));

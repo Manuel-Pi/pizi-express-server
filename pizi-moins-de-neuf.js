@@ -1,19 +1,22 @@
-var cardGame = require('./pizi-card-game.js');
+const CardManager = require('./pizi-moins-de-neuf-gameManager.js');
+var mongoose = require('mongoose');
 
 module.exports = function(server){
-
+    /****************************** SOCKET IO *************************************/
     // Get io for a specific namespace
     const io = require('socket.io')(server).of('/pizi-moins-de-neuf');
 
-    
+    // Init state
     let CONNEXION_ON = true;
     let PLAYERS = {};
     let GAMES = {};
     let KICKABLE_PLAYERS = {};
 
-    // On connection
-    io.on('connection', function (socket) {
+    mongoose.connection.once('open', () => {
+        CardManager.getGames( games => GAMES = games);
+    });
 
+    io.on('connection', function (socket) {
         socket.on('login', name => {
             if(socket.player) return;
 
@@ -24,15 +27,13 @@ module.exports = function(server){
             
             socket.player = name;
             console.log('Connexion of : ' + name);
-
-            CreateDefaultGameIfDoNotExist(GAMES);
-            socket.emit('setGames', getPublicGames(GAMES));
+            socket.emit('setGames', CardManager.getPublicGames(GAMES));
         });
 
         socket.on('join', gameName => {
             let game = GAMES[gameName];
             let player = PLAYERS[socket.player];
-            if(!game || !player || updatePlayer(player, game) || game.action || game.players.length > 6) return;
+            if(!game || !player || CardManager.updatePlayer(player, game) || game.action || game.players.length > 6) return;
 
             socket.game = gameName;
             game.players.push({
@@ -43,41 +44,46 @@ module.exports = function(server){
                 ready: false
             });
 
+            CardManager.saveGame(game);
+
             // QUICK FIX: Twice because of UI
-            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
-            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
-            io.emit('setGames', getPublicGames(GAMES));
+            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
+            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
+            io.emit('setGames', CardManager.getPublicGames(GAMES));
         });
 
         socket.on('isReady', data => {
             let game = GAMES[socket.game];
-            let player = updatePlayer(PLAYERS[socket.player], game);
+            let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
             if(!player) return;
-            player = updatePlayer({...player, ready: !player.ready}, game);
+            player = CardManager.updatePlayer({...player, ready: !player.ready}, game);
+
 
             // If all ready
             if(game.players.reduce((ready, player) => ready && player.ready, true)){
-                startGame(game);
-                socket.emit('setGames', getPublicGames(GAMES));
+                CardManager.startGame(game);
+                socket.emit('setGames', CardManager.getPublicGames(GAMES));
                 game.players.forEach( player => {
                     io.sockets[player.id].emit('setHand', player.hand);
                 });
                 console.log(" pick length " + JSON.stringify(game.pickStack.length));
             }
 
-            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
+            CardManager.saveGame(game);
+
+            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
         });
 
         socket.on('selectPick', cards => {
             let game = GAMES[socket.game];
-            let player = updatePlayer(PLAYERS[socket.player], game);
+            let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
             if(!player) return;
 
             // Not the good player, should not happen front-end should block!
             if(socket.player !== game.currentPlayer || game.action !== "pick") return;
 
             // Already have the maximum cards
-            player = updatePlayer(player, game);
+            player = CardManager.updatePlayer(player, game);
             if(player.hand.length > 6) return;
 
             let card = null;
@@ -85,11 +91,13 @@ module.exports = function(server){
             // Pick card
             let lastPlayed = [...game.playedCards[game.playedCards.length - 2]];
             console.log("Last played " + JSON.stringify(lastPlayed));
-            if(!card && cards && cards.length && contains(cards[0], lastPlayed)){
+            if(!card && cards && cards.length && CardManager.contains(cards[0], lastPlayed)){
                 card = cards[0];
                 lastPlayed = lastPlayed.filter(c => (c.value !== card.value) ||  (c.color !== card.color));
                 console.log("Last played filtered" + JSON.stringify(lastPlayed));
             }
+
+            CardManager.saveGame(game);
             
             console.log(player.name + " select pick " + JSON.stringify(card));
             console.log("pick length " + JSON.stringify(game.pickStack.length));
@@ -98,21 +106,21 @@ module.exports = function(server){
 
         socket.on('pick', cards => {
             let game = GAMES[socket.game];
-            let player = updatePlayer(PLAYERS[socket.player], game);
+            let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
             if(!player) return;
 
             // Not the good player, should not happen front-end should block!
             if(socket.player !== game.currentPlayer || game.action !== "pick") return;
 
             // Already have the maximum cards
-            player = updatePlayer(player, game);
+            player = CardManager.updatePlayer(player, game);
             if(player.hand.length > 6) return;
 
             let card = null;
             // Pick card
             let lastPlayed = game.playedCards[game.playedCards.length - 2];
             console.log("Last played " + JSON.stringify(lastPlayed));
-            if(cards && cards.length && contains(cards[0], lastPlayed)){
+            if(cards && cards.length && CardManager.contains(cards[0], lastPlayed)){
                 card = cards[0];
                 lastPlayed = lastPlayed.filter(c => (c.value !== card.value) ||  (c.color !== card.color));
                 console.log("Last played filtered" + JSON.stringify(lastPlayed));
@@ -125,22 +133,23 @@ module.exports = function(server){
                 return;
             }
 
-            const qp= quickPlay(player, [card], game);
+            const qp = CardManager.quickPlay(player, [card], game);
             game.quikPlay = qp;
             
             player.hand =[...player.hand, card];
             game.pickStack = game.pickStack.concat(lastPlayed);
             console.log(player.name + " pick " + JSON.stringify(card));
             console.log("pick length " + JSON.stringify(game.pickStack.length));
-            updatePlayer(player, game);
-            nextAction(game);
+            CardManager.updatePlayer(player, game);
+            CardManager.nextAction(game);
+            CardManager.saveGame(game);
             socket.emit('setHand', player.hand);
-            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
+            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
         });
 
         socket.on('play', cards => {
             let game = GAMES[socket.game];
-            let player = updatePlayer(PLAYERS[socket.player], game);
+            let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
             if(!player || game.action !== "play") return;
 
             console.log(socket.player + " wants to play " + JSON.stringify(cards));
@@ -153,7 +162,7 @@ module.exports = function(server){
             if(socket.player !== game.currentPlayer && !qp) return;
 
             // Check played cards
-            if(!qp && !checkPlayedCards(originalCards)){
+            if(!qp && !CardManager.checkPlayedCards(originalCards)){
                 socket.emit('notAllowed');
                 return;
             } 
@@ -173,18 +182,19 @@ module.exports = function(server){
             });
             
             if(!cards.length){
-                updatePlayer(player, game);
+                CardManager.updatePlayer(player, game);
 
                 if(qp){
                     let lastPlay = game.playedCards[game.playedCards - 1];
                     lastPlay = lastPlay.concat(originalCards);
                     game.quickPlay = false;
                 } else {
-                    nextAction(game);
+                    CardManager.nextAction(game);
                     game.playedCards.push(originalCards);
                 }
                 socket.emit('setHand', player.hand);
-                game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
+                CardManager.saveGame(game);
+                game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
                 console.log(player.name + " played " + JSON.stringify(originalCards));
                 console.log(" pick length " + JSON.stringify(game.pickStack.length));
             } else {
@@ -194,17 +204,18 @@ module.exports = function(server){
 
         socket.on('moinsDeNeuf', data => {
             let game = GAMES[socket.game];
-            let player = updatePlayer(PLAYERS[socket.player], game);
+            let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
             if(!player) return;
 
             console.log(player.name + " call for 'moins de neuf' with " + JSON.stringify(player.hand));
 
             // Is less than nine
-            const scores = endGame(game, player.name);
+            const scores = CardManager.endGame(game, player.name);
+            CardManager.saveGame(game);
             console.log("Scores: " + JSON.stringify(scores));
             if(scores.winners.names.length){
                 game.players.forEach(player => io.sockets[player.id].emit('gameEnd', scores));
-                game.players.forEach(player => io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game, true)));
+                game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game, true)));
             }
         });
 
@@ -219,9 +230,7 @@ module.exports = function(server){
             };
             
             socket.player = username;
-
-            CreateDefaultGameIfDoNotExist(GAMES);
-            socket.emit('setGames', getPublicGames(GAMES));
+            socket.emit('setGames', CardManager.getPublicGames(GAMES));
 
             Object.keys(GAMES).forEach(name => {
                 let g = GAMES[name];
@@ -229,9 +238,10 @@ module.exports = function(server){
                     if(player.name === username){
                         socket.game = g.name;
                         player.id = socket.id;
-                        socket.emit('gameInfo', getPublicGameInfo(g));
-                        socket.emit('gameInfo', getPublicGameInfo(g));
+                        socket.emit('gameInfo', CardManager.getPublicGameInfo(g));
+                        socket.emit('gameInfo', CardManager.getPublicGameInfo(g));
                         socket.emit('setHand', player.hand);
+                        CardManager.saveGame(g);
                         if(KICKABLE_PLAYERS[username]){
                             clearTimeout(KICKABLE_PLAYERS[username]);
                             delete KICKABLE_PLAYERS[username];
@@ -241,285 +251,30 @@ module.exports = function(server){
                     }
                 });
             });
-            socket.emit('setGames', getPublicGames(GAMES));
+            socket.emit('setGames', CardManager.getPublicGames(GAMES));
          });
 
         socket.on('quit', () => {
             let game = GAMES[socket.game];
-            let player = updatePlayer(PLAYERS[socket.player], game);
+            let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
             if(!player) return;
 
-            kickPlayer(player, game, GAMES);
-            game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
-            io.emit('setGames', getPublicGames(GAMES));
+            CardManager.kickPlayer(player, game, GAMES);
+            game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
+            CardManager.saveGame(game);
+            io.emit('setGames', CardManager.getPublicGames(GAMES));
         });
 
         socket.on('disconnect', function(reason){
             console.log(socket.player + ' disconnected because ' + reason);
             let game = GAMES[socket.game];
-            let player = updatePlayer(PLAYERS[socket.player], game);
+            let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
             if(!player) return;
 
             //KICKABLE_PLAYERS[player.name] = setTimeout( () => kickPlayer(player, game, GAMES), 30000, this);
-            game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', getPublicGameInfo(game)));
-            io.emit('setGames', getPublicGames(GAMES));
+            game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
+            CardManager.saveGame(game);
+            io.emit('setGames', CardManager.getPublicGames(GAMES));
          });
     });
 }
-
-const CreateDefaultGameIfDoNotExist = (games) => {
-    if(!Object.keys(games).length || !games["Général"]){
-        createGame(games, {name: "Général"}, true);
-    }
-}
-
-const createGame = (games, {name, authorized = 'All'}, force = false) => {
-    if(!name) throw new Error("No name specified for game");
-    if(games[name] && !force) throw new Error("Game already exist!");
-
-    games[name] = {
-        name,
-        authorized,
-        players: [],
-        playedCards: [],
-        pickStack: cardGame.generateCards(),
-        currentPlayer: null,
-        action: null,
-        turn: 0,
-        quikPlay: false
-    }
-}
-
-const endGame = (game, callingPlayer) => {
-    let winners = {
-        score: 100,
-        names:[]
-    };
-    const scores = {};
-    game.players.forEach(player => { 
-        let score = player.hand.reduce((total, card) => total + Math.min(cardGame.getValue(card), 10), 0);
-        if(score < winners.score){
-            winners.score = score;
-            winners.names = [player.name];
-        } else if(score === winners.score){
-            winners.names.push(player.name);
-        }
-        scores[player.name] = score;
-    });
-
-    game.players.forEach(player => { 
-        // ***** Multiple cards *****
-        cardGame.sort(player.hand);
-        let score = scores[player.name] || 0;
-        const isWinner = winners.names.includes(player.name);
-        const isCaller = player.name === callingPlayer;
-
-        if(isWinner){
-            if(isCaller){
-                player.scoreStreak++;
-                if(player.scoreStreak > 2){
-                    player.score = player.score - 50;
-                    player.scoreStreak = 0;
-                }
-            }
-        } else {
-            // Get jokers
-            let jokers = 0;
-            while(player.hand[jokers].value === "*") jokers++;
-            score = score * (jokers + 1);
-            // 
-            if(isCaller) score = score * 3;
-            player.score += score;
-        }
-
-        player.ready = false;
-
-        scores[player.name] = {
-            score: player.score,
-            scoreStreak: player.scoreStreak
-        };
-    });
-
-    game.action = null;
-    game.currentPlayer = null;
-
-    return {scores, winners};
-}
-
-const quickPlay = (player, cards, game) => {
-    if(game.turn === 0) return false;
-    let nextIndex = game.players.indexOf(player) + 1;
-    nextIndex = nextIndex < game.players.length ? nextIndex : 0;
-    const nextPlayer = game.players[nextIndex];
-
-    if(nextPlayer.name === game.currentPlayer && checkPlayedCards([...game.playedCards[game.playedCards.length - 1], ...cards])){
-        return true;
-    }
-
-    return false;
-}
-
-const startGame = (game) => {
-    // Random player order
-    game.players = cardGame.shuffle(game.players);
-    game.currentPlayer = game.players[0].name;
-    game.action = "play";
-    // Distribute
-    game.pickStack = cardGame.generateCards();
-    game.players.forEach(player => player.hand = game.pickStack.splice(0,7));
-    game.playedCards = [game.pickStack.splice(0,1)];
-}
-
-const kickPlayer = (player, game, games) => {
-    console.log("Kick " + player.name);
-    game.pickStack.concat(player.hand);
-    const index = game.players.indexOf(player);
-    if(game.currentPlayer === player.name) game.currentPlayer = index + 1 < game.players.length ? game.players[index + 1].name : 0;
-    if(index !== -1) game.players.splice(index, 1);
-
-    if(game.players.length === 0 && games) createGame(games, {name: game.name}, true);
-}
-
-const contains = (card, cards) => {
-    for(let i = 0; i < cards.length; i++){
-        if(card.value === cards[i].value && card.color === cards[i].color) return true;
-    }
-    return false;
-}
-
-const updatePlayer = (newPlayerInfo, game = null)=> {
-    if(!newPlayerInfo || !game) return;
-    for(let i = 0; i < game.players.length; i++){
-        let player = game.players[i];
-        if(player.name === newPlayerInfo.name){
-            Object.assign(player, newPlayerInfo);
-            return player;
-        } 
-    }
-}
-
-const nextAction = (game)=> {
-    switch(game.action){
-        case "pick":
-            for(let i = 0; i < game.players.length; i++){
-                if(game.players[i].name === game.currentPlayer){
-                    if(i + 1 < game.players.length ){
-                        game.currentPlayer =  game.players[i + 1].name 
-                        game.turn++;
-                    } else {
-                        game.currentPlayer = game.players[0].name;
-                    } 
-                    game.action = "play";
-                    return;
-                }
-            }
-            console.log("Error: an action should happen!");
-        break;
-
-        case "play":
-            game.action = "pick";
-        break;
-
-        default:
-            game.action = "play";
-    }
-}
-
-const getPublicGames = (games) => Object.keys(games).map(name => {
-    const gameInfo = getPublicGameInfo(games[name]);
-    return {
-        name,
-        players: gameInfo.players,
-        action: gameInfo.action
-    }
-})
-
-const getPublicGameInfo = (game, gameFinished = false)=> {
-    // Remove cards from data
-    let players = game.players.map( player => {
-        return {
-            id: player.id,
-            name: player.name,
-            cardNumber: player.hand.length,
-            score: player.score,
-            scoreStreak: player.scoreStreak,
-            ready: player.ready,
-            hand: gameFinished ? player.hand : [],
-            turn: game.turn,
-            quikPlay: game.quikPlay
-        }
-    });
-
-    // Return 2 last hands if player is picking
-    let playedCards = [];
-    if(game.action === "pick" && game.playedCards.length > 1){
-        playedCards.push(game.playedCards[game.playedCards.length - 2]);
-        playedCards.push(game.playedCards[game.playedCards.length - 1]);
-    } else if(game.playedCards.length > 0){
-        playedCards.push(game.playedCards[game.playedCards.length - 1]);
-    }
-  
-    return {
-        name: game.name,
-        players,
-        playedCards,
-        currentPlayer: game.currentPlayer,
-        action: game.action,
-        scores: gameFinished ? null : game.score
-    }
-};
-
-const checkPlayedCards = (originalcards) => {
-    const cards = [...originalcards];
-
-    // ***** No cards *****
-    if(!cards || !cards.length) return false;
-    
-    // ***** One card *****
-    if(cards.length === 1) return true;
-        
-    // ***** Multiple cards *****
-    cardGame.sort(cards);
-
-    // Get jokers
-    let jokers = 0;
-    while(cards[jokers].value === "*") jokers++;
-    // Extract jokers
-    cards.splice(0, jokers);
-
-    if(!cards.length || cards.length === 1) return true;
-
-    if(cards[0].value === cards[1].value){
-        for(let i = 2; i < cards.length; i++){
-            if(cards[i].value !== cards[0].value) return false;
-        }
-        return true;
-
-    } else if(originalcards.length > 2){
-        // Change As value if needed (only one 1 could be there)
-        if(cardGame.getValue(cards[0]) === 1 && cardGame.getValue(cards[1]) > 4){
-            cards[0].value === "14";
-            cardGame.sort(cards);
-        }
-
-        // Fluch
-        for(let i = 1; i < cards.length; i++){
-            // Check value order
-            const card1Value = cardGame.getValue(cards[i - 1]);
-            const card2Value = cardGame.getValue(cards[i]);
-            const diff = card2Value - card1Value;
-
-            // Check color
-            if(cards[i - 1].color !== cards[i].color) return false;
-
-            // Logic order
-            if(diff === 1) continue;
-
-            // Use joker
-            jokers = jokers - diff - 1;
-            if(jokers < 0) return false;
-        }
-        return true;
-    }
-    return false;
-};
