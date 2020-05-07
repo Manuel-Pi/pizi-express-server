@@ -70,7 +70,7 @@ module.exports = function(server){
             let game = GAMES[socket.game];
             let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
             
-            if(!player) return;
+            if(!player && !game) return;
 
             CardManager.kickPlayer(player, game, GAMES);
             game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
