@@ -111,7 +111,11 @@ module.exports = function(server){
 
             CardManager.saveGame(game);
 
-            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
+            game.players.forEach(player => {
+                if(io.sockets[player.id]){
+                    io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game));
+                }
+            });
         });
 
         socket.on('selectPick', cards => {
