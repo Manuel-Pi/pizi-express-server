@@ -25,6 +25,12 @@ const saveGame = (game) => {
     }
 }
 
+const removeGame = (game) => {
+    if(mongoose.connection.readyState === 1&& game && game.name){
+        GameModel.findOneAndDelete({name: game.name}, oldValue => {});
+    }
+}
+
 const createGame = (games, {name, authorized = 'All'}, force = false) => {
     if(!name) throw new Error("No name specified for game");
     if(games[name] && !force) throw new Error("Game already exist!");
@@ -289,5 +295,6 @@ module.exports = {
     nextAction,
     getPublicGames,
     getPublicGameInfo,
-    checkPlayedCards
+    checkPlayedCards,
+    removeGame
 }

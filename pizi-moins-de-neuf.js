@@ -18,7 +18,6 @@ module.exports = function(server){
 
     io.on('connection', function (socket) {
         socket.on('login', name => {
-            if(socket.player) return;
 
             PLAYERS[name] = {
                 id: socket.id,
@@ -33,7 +32,11 @@ module.exports = function(server){
         socket.on('join', gameName => {
             let game = GAMES[gameName];
             let player = PLAYERS[socket.player];
-            if(!game || !player || CardManager.updatePlayer(player, game) || game.action || game.players.length > 6) return;
+            if(!game || !player || game.action || game.players.length > 6) return;
+
+            if(socket.game && GAMES[socket.game] && CardManager.updatePlayer(player, GAMES[socket.game])){
+                CardManager.kickPlayer(CardManager.updatePlayer(player, GAMES[socket.game]), GAMES[socket.game], GAMES);
+            }
 
             socket.game = gameName;
             game.players.push({
@@ -50,6 +53,32 @@ module.exports = function(server){
             game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
             game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
             io.emit('setGames', CardManager.getPublicGames(GAMES));
+        });
+
+        socket.on('quit', () => {
+            let game = GAMES[socket.game];
+            let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
+            
+            if(!player) return;
+
+            CardManager.kickPlayer(player, game, GAMES);
+            game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
+            CardManager.saveGame(game);
+            io.emit('setGames', CardManager.getPublicGames(GAMES));
+        });
+
+        socket.on('createGame', gameProps => {
+            if(Object.keys(GAMES).length > 9) return;
+            CardManager.saveGame(CardManager.createGame(GAMES, gameProps));
+            socket.emit('setGames', CardManager.getPublicGames(GAMES));
+        });
+
+        socket.on('removeGame', gameName => {
+            let game = gameName && GAMES[gameName];
+            if(!gameName || !game || game.players.length) return;
+            delete GAMES[gameName];
+            CardManager.removeGame(GAMES);
+            socket.emit('setGames', CardManager.getPublicGames(GAMES));
         });
 
         socket.on('isReady', data => {
@@ -253,17 +282,6 @@ module.exports = function(server){
             });
             socket.emit('setGames', CardManager.getPublicGames(GAMES));
          });
-
-        socket.on('quit', () => {
-            let game = GAMES[socket.game];
-            let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
-            if(!player) return;
-
-            CardManager.kickPlayer(player, game, GAMES);
-            game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
-            CardManager.saveGame(game);
-            io.emit('setGames', CardManager.getPublicGames(GAMES));
-        });
 
         socket.on('disconnect', function(reason){
             console.log(socket.player + ' disconnected because ' + reason);
