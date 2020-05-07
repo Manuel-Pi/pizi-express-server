@@ -49,6 +49,17 @@ module.exports = function(server){
 
             CardManager.saveGame(game);
 
+            // Clean players
+            
+            let i = game.players.length;
+            while(i--){
+                if(!io.sockets[game.players[i].id]){
+                    CardManager.kickPlayer(game.players[i], GAMES[socket.game], GAMES);
+                    console.log("Kick " + game.players[i].name);
+                    return;
+                }
+            }
+
             // QUICK FIX: Twice because of UI
             game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
             game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
@@ -76,9 +87,9 @@ module.exports = function(server){
         socket.on('removeGame', gameName => {
             let game = gameName && GAMES[gameName];
             if(!gameName || !game || game.players.length) return;
+            CardManager.removeGame(GAMES[gameName]);
             delete GAMES[gameName];
-            CardManager.removeGame(GAMES);
-            socket.emit('setGames', CardManager.getPublicGames(GAMES));
+            io.emit('setGames', CardManager.getPublicGames(GAMES));
         });
 
         socket.on('isReady', data => {
@@ -161,9 +172,6 @@ module.exports = function(server){
                 console.error("Not card matching pick!");
                 return;
             }
-
-            const qp = CardManager.quickPlay(player, [card], game);
-            game.quikPlay = qp;
             
             player.hand =[...player.hand, card];
             game.pickStack = game.pickStack.concat(lastPlayed);
@@ -171,9 +179,10 @@ module.exports = function(server){
             console.log("pick length " + JSON.stringify(game.pickStack.length));
             CardManager.updatePlayer(player, game);
             CardManager.nextAction(game);
+            game.quickPlay = CardManager.quickPlay(player, [card], game);
             CardManager.saveGame(game);
             socket.emit('setHand', player.hand);
-            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
+            game.players.forEach(p => io.sockets[p.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
         });
 
         socket.on('play', cards => {
@@ -185,13 +194,11 @@ module.exports = function(server){
             var originalCards = [...cards];
 
             // Is it a quick play ?
-            const qp = game.quickPlay;
-
-            // Not the good player, should not happen front-end should block!
+            const qp = CardManager.quickPlay(player, originalCards, game);
             if(socket.player !== game.currentPlayer && !qp) return;
 
             // Check played cards
-            if(!qp && !CardManager.checkPlayedCards(originalCards)){
+            if(!CardManager.checkPlayedCards(originalCards)){
                 socket.emit('notAllowed');
                 return;
             } 
@@ -199,28 +206,28 @@ module.exports = function(server){
             // If validation succeed, set hand
             player.hand = player.hand.filter(userCard => {
                 let found = null;
-                
                 for(let i = 0; i < cards.length; i++){
                     if(cards[i].value === userCard.value && cards[i].color === userCard.color){
                         found = i;
                         break;
                     }
                 }
-                if(found !== null && cards.length) cards.splice(found, 1);
+                if(found !== null && cards.length) cards.splice(found, 1);  
                 return found === null;
             });
             
             if(!cards.length){
-                CardManager.updatePlayer(player, game);
-
                 if(qp){
-                    let lastPlay = game.playedCards[game.playedCards - 1];
-                    lastPlay = lastPlay.concat(originalCards);
-                    game.quickPlay = false;
+                    CardManager.updatePlayer(player, game);
+                    let lastPlay = game.playedCards[game.playedCards.length - 1];
+                    game.playedCards[game.playedCards.length - 1] = lastPlay.concat(originalCards);
+                    game.players.forEach(player => io.sockets[player.id].emit('quickPlayed', player.name));
                 } else {
+                    CardManager.updatePlayer(player, game);
                     CardManager.nextAction(game);
                     game.playedCards.push(originalCards);
                 }
+                game.quickPlay = false;
                 socket.emit('setHand', player.hand);
                 CardManager.saveGame(game);
                 game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
@@ -243,8 +250,9 @@ module.exports = function(server){
             CardManager.saveGame(game);
             console.log("Scores: " + JSON.stringify(scores));
             if(scores.winners.names.length){
+                let publiGame = CardManager.getPublicGameInfo(game, true);
                 game.players.forEach(player => io.sockets[player.id].emit('gameEnd', scores));
-                game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game, true)));
+                game.players.forEach(player => io.sockets[player.id].emit('gameInfo', publiGame));
             }
         });
 

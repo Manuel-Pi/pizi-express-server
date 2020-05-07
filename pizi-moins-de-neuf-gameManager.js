@@ -26,7 +26,7 @@ const saveGame = (game) => {
 }
 
 const removeGame = (game) => {
-    if(mongoose.connection.readyState === 1&& game && game.name){
+    if(mongoose.connection.readyState === 1 && game && game.name){
         GameModel.findOneAndDelete({name: game.name}, oldValue => {});
     }
 }
@@ -64,6 +64,7 @@ const endGame = (game, callingPlayer) => {
         }
         scores[player.name] = score;
     });
+    game.playedCards = [];
 
     game.players.forEach(player => { 
         // ***** Multiple cards *****
@@ -94,7 +95,8 @@ const endGame = (game, callingPlayer) => {
 
         scores[player.name] = {
             score: player.score,
-            scoreStreak: player.scoreStreak
+            scoreStreak: player.scoreStreak,
+            hand: player.hand
         };
     });
 
@@ -104,13 +106,26 @@ const endGame = (game, callingPlayer) => {
     return {scores, winners};
 }
 
-const quickPlay = (player, cards, game) => {
-    if(game.turn === 0) return false;
-    let nextIndex = game.players.indexOf(player) + 1;
+const nextPlayer = (game) => {
+    let currentPlayer = game.players.filter(player => player.name === game.currentPlayer)[0];
+    let nextIndex = game.players.indexOf(currentPlayer) + 1;
     nextIndex = nextIndex < game.players.length ? nextIndex : 0;
-    const nextPlayer = game.players[nextIndex];
+    return game.players[nextIndex];
+}
 
-    if(nextPlayer.name === game.currentPlayer && checkPlayedCards([...game.playedCards[game.playedCards.length - 1], ...cards])){
+const previousPlayer = (game) => {
+    let currentPlayer = game.players.filter(player => player.name === game.currentPlayer)[0];
+    let previousIndex = game.players.indexOf(currentPlayer) - 1;
+    previousIndex = previousIndex < 0 ? game.players.length - 1 : previousIndex;
+    return game.players[previousIndex];
+}
+
+const quickPlay = (player, cards, game) => {
+    if(game.turn === 0 || cards.length > 1) return false;
+
+    const isLastCard = player.hand[player.hand.length - 1].value === cards[0].value &&  player.hand[player.hand.length - 1].color === cards[0].color;
+
+    if(isLastCard && previousPlayer(game).name === player.name && checkPlayedCards([...game.playedCards[game.playedCards.length - 1], ...cards])){
         return true;
     }
 
@@ -202,9 +217,8 @@ const getPublicGameInfo = (game, gameFinished = false)=> {
             score: player.score,
             scoreStreak: player.scoreStreak,
             ready: player.ready,
-            hand: gameFinished ? player.hand : [],
-            turn: game.turn,
-            quikPlay: game.quikPlay
+            hand: [],
+            turn: game.turn
         }
     });
 
@@ -223,12 +237,13 @@ const getPublicGameInfo = (game, gameFinished = false)=> {
         playedCards,
         currentPlayer: game.currentPlayer,
         action: game.action,
-        scores: gameFinished ? null : game.score
+        scores: gameFinished ? null : game.score,
+        quickPlay: game.quickPlay
     }
 };
 
 const checkPlayedCards = (originalcards) => {
-    const cards = [...originalcards];
+    const cards = originalcards.map((card) => {return {...card}});
 
     // ***** No cards *****
     if(!cards || !cards.length) return false;
@@ -241,7 +256,7 @@ const checkPlayedCards = (originalcards) => {
 
     // Get jokers
     let jokers = 0;
-    while(cards[jokers].value === "*") jokers++;
+    while(cards[jokers] && cards[jokers].value === "*") jokers++;
     // Extract jokers
     cards.splice(0, jokers);
 
@@ -256,7 +271,7 @@ const checkPlayedCards = (originalcards) => {
     } else if(originalcards.length > 2){
         // Change As value if needed (only one 1 could be there)
         if(CardGame.getValue(cards[0]) === 1 && CardGame.getValue(cards[1]) > 4){
-            cards[0].value === "14";
+            cards[0].value = "14";
             CardGame.sort(cards);
         }
 
