@@ -225,7 +225,7 @@ module.exports = function(server){
                     CardManager.updatePlayer(player, game);
                     let lastPlay = game.playedCards[game.playedCards.length - 1];
                     game.playedCards[game.playedCards.length - 1] = lastPlay.concat(originalCards);
-                    game.players.forEach(player => io.sockets[player.id].emit('quickPlayed', player.name));
+                    game.players.forEach(p => io.sockets[p.id].emit('quickPlayed', player.name));
                 } else {
                     CardManager.updatePlayer(player, game);
                     CardManager.nextAction(game);
@@ -279,6 +279,7 @@ module.exports = function(server){
                     if(player.name === username){
                         socket.game = g.name;
                         player.id = socket.id;
+                        player = CardManager.updatePlayer(PLAYERS[socket.player], game);
                         socket.emit('gameInfo', CardManager.getPublicGameInfo(g));
                         socket.emit('gameInfo', CardManager.getPublicGameInfo(g));
                         socket.emit('setHand', player.hand);
