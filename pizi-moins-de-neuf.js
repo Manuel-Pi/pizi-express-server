@@ -279,7 +279,7 @@ module.exports = function(server){
                     if(player.name === username){
                         socket.game = g.name;
                         player.id = socket.id;
-                        player = CardManager.updatePlayer(PLAYERS[socket.player], game);
+                        CardManager.updatePlayer(PLAYERS[socket.player], g);
                         socket.emit('gameInfo', CardManager.getPublicGameInfo(g));
                         socket.emit('gameInfo', CardManager.getPublicGameInfo(g));
                         socket.emit('setHand', player.hand);
