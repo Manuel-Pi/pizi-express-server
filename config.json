@@ -12,9 +12,9 @@
 			}
 		}
 	},
+	"db": "mongodb://0.0.0.0/test",
 	"rest": {
 		"name": "Pizi RESTFull Server",
-		"db": "mongodb://0.0.0.0/test",
 		"restrictions": {
 			"all": {
 				"put": "admin",
