@@ -32,8 +32,14 @@ const removeGame = (game) => {
 }
 
 const createGame = (games, {name, authorized = 'All'}, force = false) => {
-    if(!name) throw new Error("No name specified for game");
-    if(games[name] && !force) throw new Error("Game already exist!");
+    if(!name) {
+        console.error("No name specified for game");
+        return;
+    }
+    if(games[name] && !force){
+        console.error("Game already exist!");
+        return;
+    }
 
     return games[name] = {
         name,
@@ -149,6 +155,7 @@ const startGame = (game) => {
 }
 
 const kickPlayer = (player, game, games) => {
+    if(!player) return;
     console.log("Kick " + player.name);
     game.pickStack.concat(player.hand);
     const index = game.players.indexOf(player);
