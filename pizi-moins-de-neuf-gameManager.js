@@ -69,13 +69,17 @@ const endGame = (game, callingPlayer) => {
     game.players.forEach(player => { 
         // ***** Multiple cards *****
         CardGame.sort(player.hand);
-        let score = scores[player.name] || 0;
+        let score = 0;
         const isWinner = winners.names.includes(player.name);
         const isCaller = player.name === callingPlayer;
+        let scoreStreak = 0;
+        let handScore = scores[player.name] || 0;
 
         if(isWinner){
+            score = 0;
             if(isCaller){
                 player.scoreStreak++;
+                scoreStreak = 1;
                 if(player.scoreStreak > 2){
                     player.score = player.score - 50;
                     player.scoreStreak = 0;
@@ -85,7 +89,7 @@ const endGame = (game, callingPlayer) => {
             // Get jokers
             let jokers = 0;
             while(player.hand[jokers].value === "*") jokers++;
-            score = score * (jokers + 1);
+            score = handScore * (jokers + 1);
             // 
             if(isCaller) score = score * 3;
             player.score += score;
@@ -94,8 +98,9 @@ const endGame = (game, callingPlayer) => {
         player.ready = false;
 
         scores[player.name] = {
-            score: player.score,
-            scoreStreak: player.scoreStreak,
+            handScore,
+            score,
+            scoreStreak,
             hand: player.hand
         };
     });
@@ -103,7 +108,7 @@ const endGame = (game, callingPlayer) => {
     game.action = null;
     game.currentPlayer = null;
 
-    return {scores, winners};
+    return {scores, winners, announcer: callingPlayer};
 }
 
 const nextPlayer = (game) => {

@@ -61,8 +61,8 @@ module.exports = function(server){
             }
 
             // QUICK FIX: Twice because of UI
-            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
-            game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
+            game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
+            game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
             io.emit('setGames', CardManager.getPublicGames(GAMES));
         });
 
@@ -104,7 +104,7 @@ module.exports = function(server){
                 CardManager.startGame(game);
                 socket.emit('setGames', CardManager.getPublicGames(GAMES));
                 game.players.forEach( player => {
-                    io.sockets[player.id].emit('setHand', player.hand);
+                    io.sockets[player.id] && io.sockets[player.id].emit('setHand', player.hand);
                 });
                 console.log(" pick length " + JSON.stringify(game.pickStack.length));
             }
@@ -234,7 +234,7 @@ module.exports = function(server){
                 game.quickPlay = false;
                 socket.emit('setHand', player.hand);
                 CardManager.saveGame(game);
-                game.players.forEach(player => io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
+                game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', CardManager.getPublicGameInfo(game)));
                 console.log(player.name + " played " + JSON.stringify(originalCards));
                 console.log(" pick length " + JSON.stringify(game.pickStack.length));
             } else {
@@ -255,8 +255,8 @@ module.exports = function(server){
             console.log("Scores: " + JSON.stringify(scores));
             if(scores.winners.names.length){
                 let publiGame = CardManager.getPublicGameInfo(game, true);
-                game.players.forEach(player => io.sockets[player.id].emit('gameEnd', scores));
-                game.players.forEach(player => io.sockets[player.id].emit('gameInfo', publiGame));
+                game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameEnd', scores));
+                game.players.forEach(player => io.sockets[player.id] && io.sockets[player.id].emit('gameInfo', publiGame));
             }
         });
 
@@ -279,7 +279,7 @@ module.exports = function(server){
                     if(player.name === username){
                         socket.game = g.name;
                         player.id = socket.id;
-                        player = CardManager.updatePlayer(PLAYERS[socket.player], game);
+                        CardManager.updatePlayer(PLAYERS[socket.player], g);
                         socket.emit('gameInfo', CardManager.getPublicGameInfo(g));
                         socket.emit('gameInfo', CardManager.getPublicGameInfo(g));
                         socket.emit('setHand', player.hand);
