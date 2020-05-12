@@ -25,7 +25,6 @@ db.once('open', () => {
 var app = express();
 // Use body parser to parse json from request body
 app.use(require('body-parser').json());
-
 // Define a static server
 app.use(express.static(config.staticServerFolder));
 
