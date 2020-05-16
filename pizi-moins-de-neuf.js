@@ -10,6 +10,7 @@ module.exports = function(server){
     let PLAYERS = {};
     let GAMES = {};
     let KICKABLE_PLAYERS = {};
+    let KICKABLE_GAMES = {};
 
     // Init game from DB
     mongoose.connection.once('open', () => {
@@ -60,11 +61,13 @@ module.exports = function(server){
             let [game, player] = getGameAndPlayer(socket);
             if(!player) return;
 
-            //KICKABLE_PLAYERS[player.name] = setTimeout( () => kickPlayer(player, game, GAMES), 30000, this);
-            CardManager.saveGame(game);
-            io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
-            io.emit('setGames', CardManager.getPublicGames(GAMES));
-            socket.leave(game.name);
+            if(game.conf.playerKickTimeout !== "Jamais") KICKABLE_PLAYERS[player.name] = setTimeout( () => {
+                CardManager.kickPlayer(player, game, GAMES);
+                CardManager.saveGame(game);
+                io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
+                io.emit('setGames', CardManager.getPublicGames(GAMES));
+                socket.leave(game.name);
+            }, valueToMillisecond(game.conf.playerKickTimeout), this);
         });
 
         /******************* JOIN / QUIT GAME **********************/
@@ -72,7 +75,7 @@ module.exports = function(server){
         socket.on('join', gameName => {
             let game = GAMES[gameName];
             let player = PLAYERS[socket.player];
-            if(!game || !player || game.action || game.players.length > 6) return;
+            if(!game || !player || game.action || game.players.length > 7 || game.players.length > game.conf.maxPlayer) return;
 
             // If player already in game, kick before allowing him to join again
             if(socket.game && GAMES[socket.game] && CardManager.updatePlayer(player, GAMES[socket.game])){
@@ -116,14 +119,20 @@ module.exports = function(server){
             socket.leave(game.name);
             socket.broadcast.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
             CardManager.saveGame(game);
+            socket.emit("gameInfo");
             io.emit('setGames', CardManager.getPublicGames(GAMES));
         });
 
         socket.on('createGame', gameProps => {
-            if(Object.keys(GAMES).length > 9) return;
+            const gameNumber = Object.keys(GAMES).length;
+            if(gameNumber > 10) return;
             CardManager.saveGame(CardManager.createGame(GAMES, gameProps));
-            io.emit('setGames', CardManager.getPublicGames(GAMES));
-            console.info('Game created: ' + gameProps.name);
+           
+            if(Object.keys(GAMES).length > gameNumber){
+                io.emit('setGames', CardManager.getPublicGames(GAMES));
+                console.info('Game created: ' + gameProps.name);
+                socket.emit('gameCreated');
+            }
         });
 
         socket.on('removeGame', gameName => {
@@ -143,14 +152,21 @@ module.exports = function(server){
             player = CardManager.updatePlayer({...player, ready: !player.ready}, game);
 
             // If all ready
-            if(game.players.reduce((ready, player) => ready && player.ready, true)){
+            let readyCount = 0;
+            let allReady = true;
+            game.players.forEach((player) => {
+                if(player.ready) readyCount++;
+                allReady = allReady && player.ready
+            });
+  
+            if(allReady && game.conf.minPlayer <= readyCount){
                 CardManager.startGame(game);
                 socket.emit('setGames', CardManager.getPublicGames(GAMES));
                 game.players.forEach( player => io.sockets[player.id] && io.sockets[player.id].emit('setHand', player.hand));
             }
 
             CardManager.saveGame(game);
-            io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
+            io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, false, true));
         });
 
         socket.on('selectPick', cards => {
@@ -220,7 +236,7 @@ module.exports = function(server){
             game.quickPlay = CardManager.quickPlay(player, [card], game);
             CardManager.saveGame(game);
             socket.emit('setHand', player.hand);
-            io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
+            io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, false, true));
         });
 
         socket.on('play', cards => {
@@ -267,7 +283,7 @@ module.exports = function(server){
                 game.quickPlay = false;
                 socket.emit('setHand', player.hand);
                 CardManager.saveGame(game);
-                io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
+                io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, false, true));
                 console.debug(player.name + " played " + JSON.stringify(originalCards));
             } else {
                 console.error("Cards are not matching what server excpect! " + JSON.stringify(cards));
@@ -281,12 +297,12 @@ module.exports = function(server){
             console.debug(player.name + " call for 'moins de neuf' with " + JSON.stringify(player.hand));
 
             // Is less than nine
-            const scores = CardManager.endGame(game, player.name);
+            const scores = CardManager.endRound(game, player.name);
             CardManager.saveGame(game);
             console.debug("Scores: " + JSON.stringify(scores));
             if(scores.winners.names.length){
-                io.to(game.name).emit('gameEnd', scores);
-                io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, true));
+                io.to(game.name).emit('roundEnd', scores);
+                io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, true, true));
             }
         });
     });
@@ -308,5 +324,22 @@ module.exports = function(server){
         socket.player = username;
         console.info('Connexion of : ' + username);
         socket.emit('setGames', CardManager.getPublicGames(GAMES));
+    }
+
+    function valueToMillisecond(value){
+        switch(value){
+            case "30s":
+                return 30 * 1000;
+            case "1min":
+                return 60 * 1000;
+            case "2min":
+                return 2 * 60 * 1000;
+            case "5min":
+                return 5 * 60 * 1000;
+            case "10min":
+                return 10 * 60 * 1000;
+            case "30min":
+                return 30 * 60 * 1000;
+        }
     }
 }

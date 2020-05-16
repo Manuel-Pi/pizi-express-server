@@ -31,30 +31,45 @@ const removeGame = (game) => {
     }
 }
 
-const createGame = (games, {name, authorized = 'All'}, force = false) => {
-    if(!name) {
+const createGame = (games, gameData = {name}, force = false) => {
+    if(!gameData.name) {
         console.error("No name specified for game");
         return;
     }
-    if(games[name] && !force){
+    if(games[gameData.name] && !force){
         console.error("Game already exist!");
         return;
     }
 
-    return games[name] = {
-        name,
-        authorized,
+    /*
+    name: "",
+    minPlayer: 3,
+    maxPlayer: 6,
+    allowQuickPlay: true,
+    allowStreak: true,
+    onlyOneWinnerStreak: false,
+    bonusMultiple50: false,
+    playerKickTimeout: "5min",
+    gameKickTimeout: "5min",
+    gameEndScore: 200
+    */
+
+    return games[gameData.name] = {
+        lastTime: (new Date()).getTime(),
+        name: gameData.name,
+        authorized: gameData.authorized,
         players: [],
         playedCards: [],
         pickStack: CardGame.generateCards(),
         currentPlayer: null,
         action: null,
         turn: 0,
-        quikPlay: false
+        quikPlay: false,
+        conf: gameData
     }
 }
 
-const endGame = (game, callingPlayer) => {
+const endRound = (game, callingPlayer) => {
     let winners = {
         score: 100,
         names:[]
@@ -83,7 +98,7 @@ const endGame = (game, callingPlayer) => {
 
         if(isWinner){
             score = 0;
-            if(isCaller){
+            if(isCaller && game.conf.allowStreak && (!game.conf.onlyOneWinnerStreak || game.conf.onlyOneWinnerStreak && winners.names.length === 1)){
                 player.scoreStreak++;
                 scoreStreak = 1;
                 if(player.scoreStreak > 2){
@@ -96,9 +111,10 @@ const endGame = (game, callingPlayer) => {
             let jokers = 0;
             while(player.hand[jokers].value === "*") jokers++;
             score = handScore * (jokers + 1);
-            // 
             if(isCaller) score = score * 3;
+            if(game.conf.bonusMultiple50 && score % 50 === 0) score = score - 50;
             player.score += score;
+
         }
 
         player.ready = false;
@@ -113,6 +129,20 @@ const endGame = (game, callingPlayer) => {
 
     game.action = null;
     game.currentPlayer = null;
+
+    game.players.forEach(player => {
+        if(player.score >= game.conf.gameEndScore){
+            game.endGame = {players: game.players.sort((first, second) => {
+                if(first.score < second.score) return -1;
+                if(first.score > second.score) return 1;
+                if(first.score === second.score) {
+                    if(first.scoreStreak < second.scoreStreak) return 1;
+                    if(first.scoreStreak > second.scoreStreak) return -1;
+                    return 0;
+                }
+            })};
+        }
+    });
 
     return {scores, winners, announcer: callingPlayer};
 }
@@ -132,7 +162,7 @@ const previousPlayer = (game) => {
 }
 
 const quickPlay = (player, cards, game) => {
-    if(game.turn === 0 || cards.length > 1) return false;
+    if(!game.conf.allowQuickPlay || game.turn === 0 || cards.length > 1) return false;
 
     const isLastCard = player.hand[player.hand.length - 1].value === cards[0].value &&  player.hand[player.hand.length - 1].color === cards[0].color;
 
@@ -162,7 +192,7 @@ const kickPlayer = (player, game, games) => {
     if(game.currentPlayer === player.name) game.currentPlayer = index + 1 < game.players.length ? game.players[index + 1].name : 0;
     if(index !== -1) game.players.splice(index, 1);
 
-    if(game.players.length === 0 && games) createGame(games, {name: game.name}, true);
+    if(game.players.length === 0 && games) createGame(games, game.conf, true);
 }
 
 const contains = (card, cards) => {
@@ -210,16 +240,33 @@ const nextAction = (game)=> {
     }
 }
 
-const getPublicGames = (games) => Object.keys(games).map(name => {
-    const gameInfo = getPublicGameInfo(games[name]);
-    return {
-        name,
-        players: gameInfo.players,
-        action: gameInfo.action
-    }
-})
+const getPublicGames = (games) => {
+    // Clean games
+    let i = Object.keys(games).length;
+    while(i--){
+        let game = games[Object.keys(games)[i]];
+        game.lastTime = game.lastTime || 0;
+        if(game.conf.gameKickTimeout !== "Jamais" && (((new Date()).getTime() - game.lastTime) >  valueToMillisecond(game.conf.gameKickTimeout))){
+            removeGame(game);
+            console.info('Delete game: ' + game.name + ' after ' + Math.round(((new Date()).getTime() - game.lastTime) / 1000) + "s");
+            delete games[Object.keys(games)[i]];
+            
+        }
+    } 
 
-const getPublicGameInfo = (game, gameFinished = false)=> {
+    return Object.keys(games).map(name => {
+        const gameInfo = getPublicGameInfo(games[name]);
+        return {
+            name,
+            players: gameInfo.players,
+            action: gameInfo.action,
+            conf: gameInfo.conf
+        }
+    })
+}
+
+const getPublicGameInfo = (game, gameFinished = false, setTime = false)=> {
+    if(setTime) game.lastTime = (new Date()).getTime();
     // Remove cards from data
     let players = game.players.map( player => {
         return {
@@ -250,7 +297,9 @@ const getPublicGameInfo = (game, gameFinished = false)=> {
         currentPlayer: game.currentPlayer,
         action: game.action,
         scores: gameFinished ? null : game.score,
-        quickPlay: game.quickPlay
+        quickPlay: game.quickPlay,
+        conf: game.conf,
+        endGame: game.endGame
     }
 };
 
@@ -309,11 +358,29 @@ const checkPlayedCards = (originalcards) => {
     return false;
 };
 
+
+const valueToMillisecond = (value) => {
+    switch(value){
+        case "30s":
+            return 30 * 1000;
+        case "1min":
+            return 60 * 1000;
+        case "2min":
+            return 2 * 60 * 1000;
+        case "5min":
+            return 5 * 60 * 1000;
+        case "10min":
+            return 10 * 60 * 1000;
+        case "30min":
+            return 30 * 60 * 1000;
+    }
+}
+
 module.exports = {
     getGames,
     saveGame,
     createGame,
-    endGame,
+    endRound,
     quickPlay,
     startGame,
     kickPlayer,
