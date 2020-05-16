@@ -125,11 +125,14 @@ const endRound = (game, callingPlayer) => {
             scoreStreak,
             hand: player.hand
         };
+
+        player.hand = [];
     });
 
     game.action = null;
     game.currentPlayer = null;
 
+    // End game
     game.players.forEach(player => {
         if(player.score >= game.conf.gameEndScore){
             game.endGame = {players: game.players.sort((first, second) => {
@@ -141,6 +144,11 @@ const endRound = (game, callingPlayer) => {
                     return 0;
                 }
             })};
+            game.players.forEach(p => {
+                p.score = 0;
+                p.scoreStreak = 0;
+            });
+            return;
         }
     });
 
