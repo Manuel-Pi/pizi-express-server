@@ -65,7 +65,8 @@ const createGame = (games, gameData = {name}, force = false) => {
         action: null,
         turn: 0,
         quikPlay: false,
-        conf: gameData
+        conf: gameData,
+        gameEnd: null
     }
 }
 
@@ -74,6 +75,8 @@ const endRound = (game, callingPlayer) => {
         score: 100,
         names:[]
     };
+
+    // Get Hand score
     const scores = {};
     game.players.forEach(player => { 
         let score = player.hand.reduce((total, card) => total + Math.min(CardGame.getValue(card), 10), 0);
@@ -85,7 +88,9 @@ const endRound = (game, callingPlayer) => {
         }
         scores[player.name] = score;
     });
-    game.playedCards = [];
+
+    // Remove player is equality and allowWinEquality
+    if(!game.conf.allowWinEquality && winners.names.includes(callingPlayer) && winners.names.length > 1) winners.names.splice(winners.names.indexOf(callingPlayer),1);
 
     game.players.forEach(player => { 
         // ***** Multiple cards *****
@@ -95,6 +100,8 @@ const endRound = (game, callingPlayer) => {
         const isCaller = player.name === callingPlayer;
         let scoreStreak = 0;
         let handScore = scores[player.name] || 0;
+        const oldScore = player.score;
+        const oldStreak = player.scoreStreak;
 
         if(isWinner){
             score = 0;
@@ -112,13 +119,15 @@ const endRound = (game, callingPlayer) => {
             while(player.hand[jokers].value === "*") jokers++;
             score = handScore * (jokers + 1);
             if(isCaller) score = score * 3;
-            if(game.conf.bonusMultiple50 && score % 50 === 0) score = score - 50;
             player.score += score;
-
         }
 
-        player.ready = false;
-
+        if(player.score !== oldScore && player.scoreStreak === oldStreak) player.scoreChanged = true; 
+        if(game.conf.bonusMultiple50 && player.score % 50 === 0 && player.scoreChanged) {
+            player.score = player.score - 50;
+            player.scoreChanged = false; 
+        }
+        
         scores[player.name] = {
             handScore,
             score,
@@ -126,31 +135,37 @@ const endRound = (game, callingPlayer) => {
             hand: player.hand
         };
 
+        player.ready = false;
         player.hand = [];
     });
 
     game.action = null;
     game.currentPlayer = null;
+    game.playedCards = [];
+
+    // Sort players
+    game.players.sort((first, second) => {
+        if(first.score < second.score) return -1;
+        if(first.score > second.score) return 1;
+        if(first.score === second.score) {
+            if(first.scoreStreak < second.scoreStreak) return 1;
+            if(first.scoreStreak > second.scoreStreak) return -1;
+            return 0;
+        }
+    });
 
     // End game
+    // by score
     game.players.forEach(player => {
         if(player.score >= game.conf.gameEndScore){
-            game.endGame = {players: game.players.sort((first, second) => {
-                if(first.score < second.score) return -1;
-                if(first.score > second.score) return 1;
-                if(first.score === second.score) {
-                    if(first.scoreStreak < second.scoreStreak) return 1;
-                    if(first.scoreStreak > second.scoreStreak) return -1;
-                    return 0;
-                }
-            })};
-            game.players.forEach(p => {
-                p.score = 0;
-                p.scoreStreak = 0;
-            });
+            game.gameEnd = "score";
             return;
         }
     });
+    // by time
+    if(!game.gameEnd && game.conf.gameEndTime !== "Jamais" && ((new Date()).getTime() - game.startTime) > valueToMillisecond(game.conf.gameEndTime)){
+        game.gameEnd = "time";
+    }
 
     return {scores, winners, announcer: callingPlayer};
 }
@@ -182,6 +197,15 @@ const quickPlay = (player, cards, game) => {
 }
 
 const startGame = (game) => {
+    // Reset Game
+    if(game.gameEnd){
+        game.players.forEach(p => {
+            p.score = 0;
+            p.scoreStreak = 0;
+        });
+        game.gameEnd = null;
+    }
+
     // Random player order
     game.players = CardGame.shuffle(game.players);
     game.currentPlayer = game.players[0].name;
@@ -190,6 +214,9 @@ const startGame = (game) => {
     game.pickStack = CardGame.generateCards();
     game.players.forEach(player => player.hand = game.pickStack.splice(0,7));
     game.playedCards = [game.pickStack.splice(0,1)];
+
+    game.startTime = (new Date()).getTime;
+    game.turn = 0;
 }
 
 const kickPlayer = (player, game, games) => {
@@ -240,6 +267,7 @@ const nextAction = (game)=> {
         break;
 
         case "play":
+            if(game.currentPlayer === game.players[0].name) game.turn++;
             game.action = "pick";
         break;
 
@@ -307,7 +335,9 @@ const getPublicGameInfo = (game, gameFinished = false, setTime = false)=> {
         scores: gameFinished ? null : game.score,
         quickPlay: game.quickPlay,
         conf: game.conf,
-        endGame: game.endGame
+        gameEnd: game.gameEnd,
+        startTime: game.startTime,
+        turn: game.turn
     }
 };
 
@@ -366,7 +396,6 @@ const checkPlayedCards = (originalcards) => {
     return false;
 };
 
-
 const valueToMillisecond = (value) => {
     switch(value){
         case "30s":
@@ -379,8 +408,16 @@ const valueToMillisecond = (value) => {
             return 5 * 60 * 1000;
         case "10min":
             return 10 * 60 * 1000;
+        case "15min":
+            return 15 * 60 * 1000;
+        case "20min":
+            return 20 * 60 * 1000;
         case "30min":
             return 30 * 60 * 1000;
+        case "45min":
+            return 45 * 60 * 1000;
+        case "1h":
+            return 60 * 60 * 1000;
     }
 }
 
