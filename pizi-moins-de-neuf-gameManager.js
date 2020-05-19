@@ -215,7 +215,7 @@ const startGame = (game) => {
     game.players.forEach(player => player.hand = game.pickStack.splice(0,7));
     game.playedCards = [game.pickStack.splice(0,1)];
 
-    game.startTime = (new Date()).getTime;
+    game.startTime = (new Date()).getTime();
     game.turn = 0;
 }
 
