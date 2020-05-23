@@ -64,6 +64,7 @@ const createGame = (games, gameData = {name}, force = false) => {
         currentPlayer: null,
         action: null,
         turn: 0,
+        round: 1,
         quikPlay: false,
         conf: gameData,
         gameEnd: null
@@ -185,7 +186,7 @@ const previousPlayer = (game) => {
 }
 
 const quickPlay = (player, cards, game) => {
-    if(!game.conf.allowQuickPlay || game.turn === 0 || cards.length > 1) return false;
+    if(!game.conf.allowQuickPlay || game.turn === 0 || cards.length > 1 || (game.turn === 0 && game.payers[0].name === game.currentPlayer)) return false;
 
     const isLastCard = player.hand[player.hand.length - 1].value === cards[0].value &&  player.hand[player.hand.length - 1].color === cards[0].color;
 
@@ -204,6 +205,8 @@ const startGame = (game) => {
             p.scoreStreak = 0;
         });
         game.gameEnd = null;
+        game.round = 0;
+        game.startTime = (new Date()).getTime();
     }
 
     // Random player order
@@ -214,9 +217,11 @@ const startGame = (game) => {
     game.pickStack = CardGame.generateCards();
     game.players.forEach(player => player.hand = game.pickStack.splice(0,7));
     game.playedCards = [game.pickStack.splice(0,1)];
-
-    game.startTime = (new Date()).getTime();
+    // Game infos
+    game.startTime = game.startTime || (new Date()).getTime();
+    game.roundStartTime = (new Date()).getTime();
     game.turn = 0;
+    game.round++;
 }
 
 const kickPlayer = (player, game, games) => {
@@ -312,8 +317,7 @@ const getPublicGameInfo = (game, gameFinished = false, setTime = false)=> {
             score: player.score,
             scoreStreak: player.scoreStreak,
             ready: player.ready,
-            hand: [],
-            turn: game.turn
+            hand: []
         }
     });
 
@@ -337,7 +341,9 @@ const getPublicGameInfo = (game, gameFinished = false, setTime = false)=> {
         conf: game.conf,
         gameEnd: game.gameEnd,
         startTime: game.startTime,
-        turn: game.turn
+        turn: game.turn,
+        roundStartTime: game.roundStartTime,
+        round: game.round
     }
 };
 
@@ -421,6 +427,26 @@ const valueToMillisecond = (value) => {
     }
 }
 
+const getCurrentGameForPlayer = (player, games) => {
+    let currentGame = null;
+    Object.keys(games).forEach(gameName => {
+        const game = games[gameName];
+        currentGame = !!game.players.find(p => {
+            return p.name === player.name
+        }) ? game : currentGame;
+    });
+    return currentGame;
+}
+
+const getPublicPlayers = (players, games) => {
+    return Object.entries(players).map(([name, player]) =>{
+        return {
+            name,
+            currentGame: getCurrentGameForPlayer(player, games) || null
+        }
+    });
+}
+
 module.exports = {
     getGames,
     saveGame,
@@ -434,6 +460,7 @@ module.exports = {
     nextAction,
     getPublicGames,
     getPublicGameInfo,
+    getPublicPlayers,
     checkPlayedCards,
     removeGame
 }

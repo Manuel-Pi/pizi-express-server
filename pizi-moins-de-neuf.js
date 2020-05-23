@@ -54,6 +54,7 @@ module.exports = function(server){
                 });
             });
             socket.emit('setGames', CardManager.getPublicGames(GAMES));
+            socket.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
          });
 
         socket.on('disconnect', function(reason){
@@ -66,6 +67,7 @@ module.exports = function(server){
                 CardManager.saveGame(game);
                 io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
                 io.emit('setGames', CardManager.getPublicGames(GAMES));
+                io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
                 socket.leave(game.name);
             }, valueToMillisecond(game.conf.playerKickTimeout), this);
         });
@@ -109,6 +111,7 @@ module.exports = function(server){
             io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
             io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
             io.emit('setGames', CardManager.getPublicGames(GAMES));
+            io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
         });
 
         socket.on('quit', () => {
@@ -121,6 +124,7 @@ module.exports = function(server){
             CardManager.saveGame(game);
             socket.emit("gameInfo");
             io.emit('setGames', CardManager.getPublicGames(GAMES));
+            io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
         });
 
         socket.on('createGame', gameProps => {
@@ -292,7 +296,7 @@ module.exports = function(server){
 
         socket.on('moinsDeNeuf', data => {
             let [game, player] = getGameAndPlayer(socket);
-            if(!player) return;
+            if(!player || game.action !== "play" || socket.player !== game.currentPlayer) return;
 
             console.debug(player.name + " call for 'moins de neuf' with " + JSON.stringify(player.hand));
 
@@ -324,6 +328,7 @@ module.exports = function(server){
         socket.player = username;
         console.info('Connexion of : ' + username);
         socket.emit('setGames', CardManager.getPublicGames(GAMES));
+        socket.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
     }
 
     function valueToMillisecond(value){
