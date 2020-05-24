@@ -39,7 +39,6 @@ module.exports = function(server){
                     player.id = socket.id;
                     CardManager.updatePlayer(PLAYERS[socket.player], g);
                     io.to(g.name).emit('gameInfo', CardManager.getPublicGameInfo(g));
-                    io.to(g.name).emit('gameInfo', CardManager.getPublicGameInfo(g));
                     socket.emit('setHand', player.hand);
                     CardManager.saveGame(g);
 
@@ -108,7 +107,6 @@ module.exports = function(server){
             }
 
             // QUICK FIX: Twice because of UI
-            io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
             io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
             io.emit('setGames', CardManager.getPublicGames(GAMES));
             io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
@@ -237,7 +235,7 @@ module.exports = function(server){
             CardManager.nextAction(game);
 
             // For Front-End
-            game.quickPlay = CardManager.quickPlay(player, [card], game);
+            game.quickPlay = !!CardManager.quickPlay(player, [card], game);
             CardManager.saveGame(game);
             socket.emit('setHand', player.hand);
             io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, false, true));
@@ -252,6 +250,7 @@ module.exports = function(server){
 
             // Is it a quick play ?
             const qp = CardManager.quickPlay(player, originalCards, game);
+            if(qp === "bash") io.to(game.name).emit('bash', player.name);
             if(socket.player !== game.currentPlayer && !qp) return;
 
             // Check played cards
@@ -274,7 +273,7 @@ module.exports = function(server){
             });
             
             if(!cards.length){
-                if(qp){
+                if(qp === "quick"){
                     CardManager.updatePlayer(player, game);
                     let lastPlay = game.playedCards[game.playedCards.length - 1];
                     game.playedCards[game.playedCards.length - 1] = lastPlay.concat(originalCards);

@@ -64,7 +64,7 @@ const createGame = (games, gameData = {name}, force = false) => {
         currentPlayer: null,
         action: null,
         turn: 0,
-        round: 1,
+        round: 0,
         quikPlay: false,
         conf: gameData,
         gameEnd: null
@@ -123,11 +123,8 @@ const endRound = (game, callingPlayer) => {
             player.score += score;
         }
 
-        if(player.score !== oldScore && player.scoreStreak === oldStreak) player.scoreChanged = true; 
-        if(game.conf.bonusMultiple50 && player.score % 50 === 0 && player.scoreChanged) {
-            player.score = player.score - 50;
-            player.scoreChanged = false; 
-        }
+        const scoreChanged = player.score !== oldScore && player.scoreStreak === oldStreak &&  oldScore % 50 !== 0; 
+        if(game.conf.bonusMultiple50 && player.score % 50 === 0 && scoreChanged) player.score = player.score - 50;
         
         scores[player.name] = {
             handScore,
@@ -178,23 +175,31 @@ const nextPlayer = (game) => {
     return game.players[nextIndex];
 }
 
-const previousPlayer = (game) => {
+const previousPlayer = (game, index = 1) => {
     let currentPlayer = game.players.filter(player => player.name === game.currentPlayer)[0];
-    let previousIndex = game.players.indexOf(currentPlayer) - 1;
-    previousIndex = previousIndex < 0 ? game.players.length - 1 : previousIndex;
+    let previousIndex = game.players.indexOf(currentPlayer) - index;
+    while(index > 0){
+        previousIndex = previousIndex < (index - 1) ? game.players.length - index : previousIndex;
+        index--;
+    }
     return game.players[previousIndex];
 }
 
 const quickPlay = (player, cards, game) => {
-    if(!game.conf.allowQuickPlay || game.turn === 0 || cards.length > 1 || (game.turn === 0 && game.payers[0].name === game.currentPlayer)) return false;
+    if(!game.conf.allowQuickPlay || cards.length > 1 || (game.turn === 1 && game.players[0].name === game.currentPlayer)) return null;
 
     const isLastCard = player.hand[player.hand.length - 1].value === cards[0].value &&  player.hand[player.hand.length - 1].color === cards[0].color;
 
     if(isLastCard && previousPlayer(game).name === player.name && checkPlayedCards([...game.playedCards[game.playedCards.length - 1], ...cards])){
-        return true;
+       
+        if(previousPlayer(game).name === player.name){
+            return "quick";
+        } else if(previousPlayer(game, 2).name === player.name){
+            return "bash";
+        }
     }
 
-    return false;
+    return null;
 }
 
 const startGame = (game) => {
@@ -220,7 +225,7 @@ const startGame = (game) => {
     // Game infos
     game.startTime = game.startTime || (new Date()).getTime();
     game.roundStartTime = (new Date()).getTime();
-    game.turn = 0;
+    game.turn = 1;
     game.round++;
 }
 
@@ -260,9 +265,9 @@ const nextAction = (game)=> {
                 if(game.players[i].name === game.currentPlayer){
                     if(i + 1 < game.players.length ){
                         game.currentPlayer =  game.players[i + 1].name 
-                        game.turn++;
                     } else {
                         game.currentPlayer = game.players[0].name;
+                        game.turn++;
                     } 
                     game.action = "play";
                     return;
@@ -272,7 +277,6 @@ const nextAction = (game)=> {
         break;
 
         case "play":
-            if(game.currentPlayer === game.players[0].name) game.turn++;
             game.action = "pick";
         break;
 
