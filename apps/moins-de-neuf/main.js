@@ -3754,6 +3754,8 @@ fontawesome_svg_core_1.library.add(free_solid_svg_icons_1.faCheck, free_solid_sv
 !!React;
 // Get Socket.io
 var socket = io('/pizi-moins-de-neuf');
+if (('standalone' in window.navigator) && (window.navigator['standalone']))
+    document.documentElement.classList.add("standalone");
 ReactDOM.render(React.createElement(App_1.App, { socket: socket }), document.getElementsByTagName("app")[0]);
 
 
