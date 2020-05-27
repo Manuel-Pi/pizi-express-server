@@ -30,8 +30,9 @@ app.use(express.static(config.staticServerFolder));
 
 // Define the authentification function
 function checkAuth(login, password, callback){
+    const UserModel = require('./database/models/user');
     try{
-        mongoose.models["user"].find({"login": login},
+        UserModel.find({"login": login},
         function(err, models) {
             if (err) {
                 callback(true);
@@ -49,27 +50,24 @@ function checkAuth(login, password, callback){
 }
 
 // Use auth for the REST API
-//app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth, config.jwt));
-
+app.use('/pizi-rest', require('./modules/pizi-jwt')(checkAuth, config.jwt));
 // Define the REST API
-//app.use('/pizi-rest', require('./pizi-rest.js')(config.rest));
-
+app.use('/pizi-rest', require('./modules/pizi-rest')(config.rest));
 // Add server utils
-//app.use('/utils', require('./pizi-server-utils.js')(config.utils));
+app.use('/utils', require('./modules/pizi-server-utils.js')(config.utils));
 
 
 /*--------------------- CREATE SERVER ---------------------------------*/
 
 // Get launch HTTP server
 const port = process.env.PORT || config.port;
-var server = require('http').createServer(app);
+const server = require('http').createServer(app);
 server.listen(port, function () {
     console.log('Server started on port ' + port + '...');
 });
 
 /*--------------------- APPS---------------------------------*/
-
+const socketServer = require('socket.io')(server);
 // Add WebSocket Chat
-//require('./pizi-chat.js')(server);
-
-require('./pizi-moins-de-neuf.js')(server);
+require('./pizi-chat.js')(socketServer);
+require('./pizi-moins-de-neuf.js')(socketServer);

@@ -17,14 +17,19 @@
 		"name": "Pizi RESTFull Server",
 		"restrictions": {
 			"all": {
+				"get": "admin",
 				"put": "admin",
 				"post": "admin",
-				"delete": "admin"
+				"delete": "admin",
+				"attributes": {
+					"_id": "admin",
+					"password": "nobody"
+				}
 			},
-			"user": {
+			"users": {
 				"all": "admin",
 				"attributes": {
-					"role": "superAdmin"
+					"role": "admin"
 				}
 			}
 		}

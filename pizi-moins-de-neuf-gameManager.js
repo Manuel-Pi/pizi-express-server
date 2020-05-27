@@ -7,9 +7,8 @@ const getGames = (callback) => {
     if(mongoose.connection.readyState === 1){
         // Check for db
         GameModel.find({}, (err, gameModels) => {
-            if(err) console.log(JSON.stringify(err));
+            if(err) console.error(JSON.stringify(err));
             gameModels.forEach(game => {
-                console.log(JSON.stringify(game));
                 games[game.name] = game;
             });
             callback(games);
@@ -231,7 +230,7 @@ const startGame = (game) => {
 
 const kickPlayer = (player, game, games) => {
     if(!player) return;
-    console.log("Kick " + player.name);
+    console.info("Kick " + player.name);
     game.pickStack.concat(player.hand);
     const index = game.players.indexOf(player);
     if(game.currentPlayer === player.name) game.currentPlayer = index + 1 < game.players.length ? game.players[index + 1].name : 0;
@@ -273,7 +272,7 @@ const nextAction = (game)=> {
                     return;
                 }
             }
-            console.log("Error: an action should happen!");
+            console.error("Error: an action should happen!");
         break;
 
         case "play":

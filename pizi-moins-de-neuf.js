@@ -1,9 +1,9 @@
 const CardManager = require('./pizi-moins-de-neuf-gameManager.js');
 var mongoose = require('mongoose');
 
-module.exports = function(server){
+module.exports = function(socketServer){
     // Get io for a specific namespace
-    const io = require('socket.io')(server).of('/pizi-moins-de-neuf');
+    const io = socketServer.of('/pizi-moins-de-neuf');
 
     // Init state
     let CONNEXION_ON = true;
@@ -38,7 +38,7 @@ module.exports = function(server){
                     socket.join(g.name);
                     player.id = socket.id;
                     CardManager.updatePlayer(PLAYERS[socket.player], g);
-                    io.to(g.name).emit('gameInfo', CardManager.getPublicGameInfo(g));
+                    socket.emit('gameInfo', CardManager.getPublicGameInfo(g));
                     socket.emit('setHand', player.hand);
                     CardManager.saveGame(g);
 
@@ -101,18 +101,17 @@ module.exports = function(server){
             while(i--){
                 if(!io.sockets[game.players[i].id]){
                     CardManager.kickPlayer(game.players[i], GAMES[socket.game], GAMES);
-                    console.log("Kick " + game.players[i].name);
+                    console.info("Kick " + game.players[i].name);
                     return;
                 }
             }
 
-            // QUICK FIX: Twice because of UI
             io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
             io.emit('setGames', CardManager.getPublicGames(GAMES));
             io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
         });
 
-        socket.on('quit', () => {
+        socket.on('quit', (disconnect) => {
             let [game, player] = getGameAndPlayer(socket);
             if(!player) return;
 
@@ -120,9 +119,10 @@ module.exports = function(server){
             socket.leave(game.name);
             socket.broadcast.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
             CardManager.saveGame(game);
-            socket.emit("gameInfo");
             io.emit('setGames', CardManager.getPublicGames(GAMES));
             io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
+            // Disconnect from socket if needed
+            disconnect && socket.disconnect();
         });
 
         socket.on('createGame', gameProps => {
@@ -186,17 +186,16 @@ module.exports = function(server){
             if(cards && cards[0] && cards[0].value === "0" && cards[0].color === "heart") card = cards[0];
             // Pick card
             let lastPlayed = [...game.playedCards[game.playedCards.length - 2]];
-            console.log("Last played " + JSON.stringify(lastPlayed));
+            console.debug("Last played " + JSON.stringify(lastPlayed));
             if(!card && cards && cards.length && CardManager.contains(cards[0], lastPlayed)){
                 card = cards[0];
                 lastPlayed = lastPlayed.filter(c => (c.value !== card.value) ||  (c.color !== card.color));
-                console.log("Last played filtered" + JSON.stringify(lastPlayed));
+                console.debug("Last played filtered" + JSON.stringify(lastPlayed));
             }
 
             CardManager.saveGame(game);
             
-            console.log(player.name + " select pick " + JSON.stringify(card));
-            console.log("pick length " + JSON.stringify(game.pickStack.length));
+            console.debug(player.name + " select pick " + JSON.stringify(card));
             socket.broadcast.to(game.name).emit('selectedPick', card);
         });
 
@@ -307,6 +306,15 @@ module.exports = function(server){
                 io.to(game.name).emit('roundEnd', scores);
                 io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, true, true));
             }
+        });
+
+        socket.on('refresh', data => {
+            let [game, player] = getGameAndPlayer(socket);
+            if(!player) return;
+
+            console.info(player.name + " call for refresh. ");
+            socket.emit('gameInfo', CardManager.getPublicGameInfo(game));
+            socket.emit('setHand', player.hand);
         });
     });
 
