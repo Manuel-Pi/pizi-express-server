@@ -12,7 +12,8 @@ const GameSchema = new mongoose.Schema({
     quikPlay: Boolean,
     conf: Object,
     startTime: Number,
-    roundStartTime: Number
+    roundStartTime: Number,
+    lastTime: Number
 });
 
 module.exports = mongoose.model('Game', GameSchema);

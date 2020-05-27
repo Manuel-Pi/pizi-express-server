@@ -118,7 +118,7 @@ const endRound = (game, callingPlayer) => {
             let jokers = 0;
             while(player.hand[jokers].value === "*") jokers++;
             score = handScore * (jokers + 1);
-            if(isCaller) score = score * 3;
+            if(isCaller) score = winners.score === score ? score * 2 : score * 3;
             player.score += score;
         }
 
@@ -189,7 +189,7 @@ const quickPlay = (player, cards, game) => {
 
     const isLastCard = player.hand[player.hand.length - 1].value === cards[0].value &&  player.hand[player.hand.length - 1].color === cards[0].color;
 
-    if(isLastCard && previousPlayer(game).name === player.name && checkPlayedCards([...game.playedCards[game.playedCards.length - 1], ...cards])){
+    if(isLastCard && previousPlayer(game).name === player.name && checkPlayedCards([...game.playedCards[game.playedCards.length - 1], ...cards], true)){
        
         if(previousPlayer(game).name === player.name){
             return "quick";
@@ -289,7 +289,7 @@ const getPublicGames = (games) => {
     let i = Object.keys(games).length;
     while(i--){
         let game = games[Object.keys(games)[i]];
-        game.lastTime = game.lastTime || 0;
+        game.lastTime = game.lastTime || (new Date()).getTime();
         if(game.conf.gameKickTimeout !== "Jamais" && (((new Date()).getTime() - game.lastTime) >  valueToMillisecond(game.conf.gameKickTimeout))){
             removeGame(game);
             console.info('Delete game: ' + game.name + ' after ' + Math.round(((new Date()).getTime() - game.lastTime) / 1000) + "s");
@@ -350,7 +350,7 @@ const getPublicGameInfo = (game, gameFinished = false, setTime = false)=> {
     }
 };
 
-const checkPlayedCards = (originalcards) => {
+const checkPlayedCards = (originalcards, quickPlay = false) => {
     const cards = originalcards.map((card) => {return {...card}});
 
     // ***** No cards *****
@@ -371,34 +371,57 @@ const checkPlayedCards = (originalcards) => {
     if(!cards.length || cards.length === 1) return true;
 
     if(cards[0].value === cards[1].value){
-        for(let i = 2; i < cards.length; i++){
-            if(cards[i].value !== cards[0].value) return false;
-        }
-        return true;
-
+        return cards.every(card => card.value === cards[0].value);
     } else if(originalcards.length > 2){
-        // Change As value if needed (only one 1 could be there)
-        if(CardGame.getValue(cards[0]) === 1 && CardGame.getValue(cards[1]) > 4){
-            cards[0].value = "14";
-            CardGame.sort(cards);
-        }
-
         // Fluch
-        for(let i = 1; i < cards.length; i++){
-            // Check value order
-            const card1Value = CardGame.getValue(cards[i - 1]);
-            const card2Value = CardGame.getValue(cards[i]);
-            const diff = card2Value - card1Value;
+        let expectedValue;
+        let color;
 
-            // Check color
-            if(cards[i - 1].color !== cards[i].color) return false;
+        if(quickPlay){
+            // Change As value if needed (only one 1 could be there)
+            if(CardGame.getValue(cards[0]) === 1 && CardGame.getValue(cards[1]) > 4){
+                cards[0].value = "14";
+                CardGame.sort(cards);
+            }
 
-            // Logic order
-            if(diff === 1) continue;
+            // Fluch
+            for(let i = 1; i < cards.length; i++){
+                // Check value order
+                const card1Value = CardGame.getValue(cards[i - 1]);
+                let card2Value = CardGame.getValue(cards[i]);
+                if(i === cards.length - 1 && card2Value === 1) card2Value = 14;
+                const diff = card2Value - card1Value;
 
-            // Use joker
-            jokers = jokers - (diff - 1);
-            if(jokers < 0) return false;
+                // Check color
+                if(cards[i - 1].color !== cards[i].color) return false;
+
+                // Logic order
+                if(diff === 1) continue;
+
+                // Use joker
+                jokers = jokers - (diff - 1);
+                if(jokers < 0) return false;
+            }
+        } else {
+            for(let i = 0; i < originalcards.length; i++){
+                const isJoker = originalcards[i].color === "joker";
+                expectedValue && expectedValue++;
+                if(isJoker) continue;
+    
+                // Check color
+                if(color && originalcards[i].color !== color) return false;
+    
+                // Logic order
+                let cardValue = CardGame.getValue(originalcards[i]);
+                if(!expectedValue){
+                    color = originalcards[i].color;
+                    expectedValue = cardValue;
+                    continue;
+                }
+                
+                if(i === originalcards.length - 1 && cardValue === 1) cardValue = 14;
+                if(expectedValue !== cardValue) return false;
+            }
         }
         return true;
     }

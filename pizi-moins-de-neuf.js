@@ -118,6 +118,7 @@ module.exports = function(socketServer){
             CardManager.kickPlayer(player, game, GAMES);
             socket.leave(game.name);
             socket.broadcast.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
+            socket.emit('gameInfo', null);
             CardManager.saveGame(game);
             io.emit('setGames', CardManager.getPublicGames(GAMES));
             io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
@@ -310,7 +311,11 @@ module.exports = function(socketServer){
 
         socket.on('refresh', data => {
             let [game, player] = getGameAndPlayer(socket);
-            if(!player) return;
+            if(!player) {
+                socket.emit('setGames', CardManager.getPublicGames(GAMES));
+                socket.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
+                return;
+            }
 
             console.info(player.name + " call for refresh. ");
             socket.emit('gameInfo', CardManager.getPublicGameInfo(game));

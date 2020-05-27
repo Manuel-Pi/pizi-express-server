@@ -3388,7 +3388,7 @@ var App = /** @class */ (function (_super) {
             this.setState({
                 username: disconnectUser ? null : this.state.username,
                 currentGame: null,
-                currentScreen: disconnectUser ? SCREEN.LOGIN : this.state.currentScreen,
+                currentScreen: disconnectUser ? SCREEN.LOGIN : this.state.currentScreen === SCREEN.GAME ? SCREEN.LOBBY : this.state.currentScreen,
             });
             this.props.socket.emit("quit", disconnectUser);
         }
@@ -12303,7 +12303,8 @@ var GameBoard = /** @class */ (function (_super) {
             startTime: 0,
             turn: 0,
             round: 0,
-            roundStartTime: 0
+            roundStartTime: 0,
+            cardTurned: false
         };
         return _this;
     }
@@ -12380,7 +12381,8 @@ var GameBoard = /** @class */ (function (_super) {
                 hand: [],
                 currentSelection: [],
                 playedCards: [],
-                currentPlayer: null
+                currentPlayer: null,
+                cardTurned: false
             });
         });
     };
@@ -12418,7 +12420,7 @@ var GameBoard = /** @class */ (function (_super) {
             isValid = index !== -1 && (index === 0 || index === this.state.playedCards[0].length - 1);
         }
         var pickSelection = (isValid && this.state.pickSelection !== cardModel) ? cardModel : null;
-        this.setState({ pickSelection: pickSelection });
+        this.setState({ pickSelection: pickSelection, cardTurned: true });
         var cardSelection = pickSelection ? CardModel_1.CardParser.toJson([pickSelection]) : null;
         !force && this.props.socket.emit("selectPick", cardSelection);
     };
@@ -12561,10 +12563,10 @@ var GameBoard = /** @class */ (function (_super) {
                     react_1.default.createElement(Players_1.Players, { playerModels: this.state.players, currentPlayer: this.state.currentPlayer })),
                 react_1.default.createElement("div", { className: actionClassName }, this.getAction())),
             react_1.default.createElement("div", { className: "fold" },
-                react_1.default.createElement(Hand_1.Hand, { className: "previous-play " + (this.state.action === "pick" ? "is-picking" : ""), cardModels: this.state.playedCards[0], selectedCardModels: [this.state.pickSelection], onSelected: function (cardModel) { return _this.selectPickCard(cardModel); }, turned: true }),
+                react_1.default.createElement(Hand_1.Hand, { className: "previous-play " + (this.state.action === "pick" ? "is-picking" : ""), cardModels: this.state.playedCards[0], selectedCardModels: [this.state.pickSelection], onSelected: function (cardModel) { return _this.selectPickCard(cardModel); } }),
                 react_1.default.createElement(Hand_1.Hand, { className: "played", cardModels: this.state.playedCards[1] })),
             react_1.default.createElement("div", { className: "playerHand" },
-                react_1.default.createElement(Hand_1.Hand, { cardModels: this.state.hand, selectedCardModels: this.state.currentSelection, onSelected: function (cardModel) { return _this.selectCard(cardModel); }, turned: this.state.turn === 1 })),
+                react_1.default.createElement(Hand_1.Hand, { cardModels: this.state.hand, turned: this.state.cardTurned, selectedCardModels: this.state.currentSelection, onSelected: function (cardModel) { return _this.selectCard(cardModel); } })),
             this.state.results && this.displayResults(),
             this.state.gameEnd && this.state.displayEnd && this.displayEndGame(),
             this.state.quickPlayed && this.displayQuickPlayed(),
@@ -12598,13 +12600,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var react_1 = __importStar(__webpack_require__(1));
 var Card_1 = __webpack_require__(16);
 exports.Hand = function (_a) {
-    var cardModels = _a.cardModels, onSelected = _a.onSelected, _b = _a.selectedCardModels, selectedCardModels = _b === void 0 ? [] : _b, _c = _a.className, className = _c === void 0 ? "" : _c, _d = _a.turned, turned = _d === void 0 ? false : _d;
+    var cardModels = _a.cardModels, onSelected = _a.onSelected, _b = _a.selectedCardModels, selectedCardModels = _b === void 0 ? [] : _b, _c = _a.className, className = _c === void 0 ? "" : _c, _d = _a.turned, turned = _d === void 0 ? true : _d;
     var _e = react_1.useState(turned), turnedList = _e[0], setTurnedList = _e[1];
     var _f = react_1.useState(null), width = _f[0], setWidth = _f[1];
     var handRef = react_1.useRef();
     react_1.useEffect(function () {
         setWidth(handRef.current.getBoundingClientRect().width);
-    }, [handRef]);
+    });
     react_1.useEffect(function () {
         setTurnedList(turned);
     }, [turned]);
@@ -12621,8 +12623,7 @@ exports.Hand = function (_a) {
         onSelected && onSelected(cardModel);
     }
     return react_1.default.createElement("div", { ref: handRef, className: "hand " + className }, cardModels && cardModels.map(function (cardModel, i) {
-        if (turnedList)
-            cardModel.setTurned(true);
+        cardModel.setTurned(turnedList);
         var leftPx = (lastWidth / (cardModels.length)) * i;
         leftPx = leftPx > lastCardWidth * i ? lastCardWidth * i : leftPx;
         return react_1.default.createElement(Card_1.Card, { className: (selectedCardModels.includes(cardModel)) ? "selected" : "", cardModel: cardModel, style: { left: leftPx * 100 / lastWidth + "%" }, onClick: function () { clickHandler(cardModel); } });
