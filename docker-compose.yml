@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+    nodejs:
+        image: node:12-alpine
+        ports: 
+            - "8087:8087"
+        working_dir: /app
+        volumes:
+            - ./:/app
+        environment:
+            PORT: 8087
+        command: sh -c "npm install && node server.js"
+
+    mongo:
+        image: mongo
+        volumes:
+            - 'mongodb:/data/db'
+
+volumes: 
+    mongodb:
