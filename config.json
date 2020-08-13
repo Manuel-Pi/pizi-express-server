@@ -1,6 +1,6 @@
 {
 	"port": 8087,
-	"staticServerFolder": "./apps",
+	"staticServerFolder": "apps",
 	"jwt": {
 		"needToken": false,
 		"token": {

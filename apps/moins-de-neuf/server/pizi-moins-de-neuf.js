@@ -4,7 +4,7 @@ var mongoose = require('mongoose');
 module.exports = function(socketServer){
     // Get io for a specific namespace
     const io = socketServer.of('/pizi-moins-de-neuf');
- console.log("asdadasdasdasdsa");
+    
     // Init state
     let CONNEXION_ON = true;
     let PLAYERS = {};
