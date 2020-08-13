@@ -8,9 +8,10 @@ services:
         working_dir: /app
         volumes:
             - ./:/app
+            - node_modules:/app/node_modules
         environment:
             PORT: 8087
-        command: sh -c "npm install && node server.js"
+        command: sh -c "npm install && npm run startNodemon"
 
     mongo:
         image: mongo
@@ -19,3 +20,4 @@ services:
 
 volumes: 
     mongodb:
+    node_modules:

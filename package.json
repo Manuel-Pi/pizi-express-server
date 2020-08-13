@@ -7,7 +7,8 @@
     "deployApps": "cp -R ./apps/* ./ROOT",
     "deployAppsDev": "cp -R ./apps/* ./ROOT  && node ./deployAppsDev.js",
     "start": "node ./server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "startNodemon": "nodemon server.js"
   },
   "author": "Manuel Pi",
   "license": "ISC",
@@ -22,6 +23,7 @@
     "node": "13.x"
   },
   "devDependencies": {
+    "nodemon": "^2.0.4",
     "replace": "^1.2.0"
   },
   "repository": {
