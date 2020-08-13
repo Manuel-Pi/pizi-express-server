@@ -12,7 +12,7 @@
 			}
 		}
 	},
-	"db": "mongodb://mongo/test",
+	"db": "mongodb://0.0.0.0/test",
 	"rest": {
 		"name": "Pizi RESTFull Server",
 		"restrictions": {
