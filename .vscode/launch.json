@@ -3,6 +3,12 @@
 	// List of configurations. Add new configurations or edit existing ones.
 	// ONLY "node" and "mono" are supported, change "type" to switch.
 	"configurations": [
+	{
+		"name": "Docker Node.js Launch",
+		"type": "docker",
+		"request": "launch",
+		"platform": "node"
+	  },
 		{
 			// Name of configuration; appears in the launch configuration drop down menu.
 			"name": "Launch server.js",
@@ -29,15 +35,6 @@
 			// If JavaScript source maps are enabled, the generated code is expected in this directory.
 			"outDir": null,
 			"request": "launch"
-		},
-		{
-			"name": "Attach",
-			"type": "node",
-			// TCP/IP address. Default is "localhost".
-			"address": "localhost",
-			// Port to attach to.
-			"port": 5858,
-			"sourceMaps": false
 		}
 	]
 }

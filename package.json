@@ -8,7 +8,7 @@
     "deployAppsDev": "cp -R ./apps/* ./ROOT  && node ./deployAppsDev.js",
     "start": "node ./server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "startNodemon": "nodemon ./server.js"
+    "startNodemon": "nodemon ./server.js --inspect"
   },
   "author": "Manuel Pi",
   "license": "ISC",

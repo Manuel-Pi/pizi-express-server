@@ -1,8 +1,13 @@
 {
 	"port": 8087,
 	"staticServerFolder": "apps",
+	"logger":{
+		"server": "info",
+		"moins-de-neuf": "info",
+		"appname": "debug"
+	},
 	"jwt": {
-		"needToken": false,
+		"needToken": true,
 		"token": {
 			"path": "/token",
 			"key": "p!z!K3y",
@@ -14,6 +19,7 @@
 	},
 	"db": "mongodb://0.0.0.0/test",
 	"rest": {
+		"url": "/pizi-rest",
 		"name": "Pizi RESTFull Server",
 		"restrictions": {
 			"all": {
