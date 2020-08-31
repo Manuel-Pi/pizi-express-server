@@ -8,13 +8,15 @@
     "deployAppsDev": "cp -R ./apps/* ./ROOT  && node ./deployAppsDev.js",
     "start": "node ./server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "startNodemon": "nodemon ./server.js --inspect"
+    "startNodemon": "nodemon ./server.js --inspect",
+    "createCertificate": "cd ./server/certificates/ && openssl req -x509 -nodes -days 730 -newkey rsa:2048  -keyout cert.key -out cert.pem -config req.cnf -sha256"
   },
   "author": "Manuel Pi",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.19.0",
     "express": "^4.13.3",
+    "helmet": "^4.1.0",
     "jsonwebtoken": "^5.4.1",
     "mongoose": "^5.9.12",
     "socket.io": "^2.3.0"

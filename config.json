@@ -1,5 +1,6 @@
 {
 	"port": 8087,
+	"https": true,
 	"staticServerFolder": "apps",
 	"logger":{
 		"server": "info",
@@ -7,7 +8,7 @@
 		"appname": "debug"
 	},
 	"jwt": {
-		"needToken": true,
+		"needToken": false,
 		"token": {
 			"path": "/token",
 			"key": "p!z!K3y",
@@ -23,7 +24,7 @@
 		"name": "Pizi RESTFull Server",
 		"restrictions": {
 			"all": {
-				"get": "admin",
+				"get": "anonymous",
 				"put": "admin",
 				"post": "admin",
 				"delete": "admin",
@@ -33,7 +34,7 @@
 				}
 			},
 			"users": {
-				"all": "admin",
+				"all": "anonymous",
 				"attributes": {
 					"role": "admin"
 				}

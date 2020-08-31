@@ -1,6 +1,8 @@
 const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
+const fs = require('fs');
 
 // Get config file
 const config = require('./config.json');
@@ -13,13 +15,21 @@ let serverState = {
     tokenUrl: config.jwt.token.path,
     logger: config.logger,
     rest: config.rest,
-    jwt: config.jwt.needToken
+    jwt: config.jwt.needToken,
+    https: config.https
 };
+
+const setServerState = (state = {}) => {
+    serverState = {... serverState, ...state};
+    socketServer.of('/pizi-server').emit("infos", serverState);
+}
 
 /*--------------------- EXPRESS MODULES ---------------------------------*/
 
 // Get express instance
 const app = express();
+// Secure headers
+app.use(helmet());
 // Use body parser to parse json from request body
 app.use(require('body-parser').json());
 // Define a static server
@@ -36,12 +46,13 @@ mongoose.set('useUnifiedTopology', true);
 mongoose.connect(process.env.MONGODB_URI || config.db);
 const db = mongoose.connection;
 db.on('error', e => {
-    console.error('Database connection error:' + e);
-    serverState.db = "error";
+    console.error('Database connection error!');
+    console.debug(e);
+    setServerState({db:  "error"});
 });
-db.once('open', () => {
+db.once('open', () => {  
     console.info('Database successfully connected!');
-    serverState.db = "connected";
+    setServerState({db:  "connected"});
 });
 
 /*--------------------- CUSTOM MODULES ---------------------------------*/
@@ -57,43 +68,18 @@ app.get('/', (req, res) => {
     res.redirect('/appname');
 });
 
-
-let participantMap = new Map();
-participantMap.set(1, {id:1, name: "José", participants: new Map()});
-participantMap.set(2, {id:2, title: "Robert", participants: new Map()});
-participantMap.set(3, {id:3, title: "Franck", participants: new Map()});
-
-let activityMap = new Map();
-activityMap.set(1, {id:1, title: "Soccer", participants: participantMap});
-activityMap.set(2, {id:2, title: "Basket", participants: new Map()});
-activityMap.set(3, {id:3, title: "Frisbee", participants: new Map()});
-
-
-activityMap.get(1).participants.set(1, "José");
-
-app.get('/mandana', (req, res) => {
-
-    let activityArray = Array.from(activityMap.values())
-
-    let activityWithParticipantArray = activityArray.map(activity => {
-        return {
-            ...activity,
-            participants: Array.from(participantMap.values())
-        }
-    });
-
-    res.send({
-        message: "Caribou", 
-        activityArray: activityWithParticipantArray,
-        activityNumber: activityMap.size
-    });
-});
-
 /*--------------------- CREATE SERVER ---------------------------------*/
 
-// Get launch HTTP server
+// Get server options
 const port = process.env.PORT || config.port;
-const server = require('http').createServer(app);
+const protocol = config.https ? require('https') : require('http');
+const serverOptions = !config.https ? {} : {
+    key: fs.readFileSync("./server/certificates/cert.key"),
+    cert: fs.readFileSync("./server/certificates/cert.pem")
+}
+console.info("Server protocol is: " + config.https ? "https" : "http");
+// Create server
+const server = protocol.createServer(serverOptions, app);
 server.listen(port, () => console.info('Server started on port ' + port + '...'));
 
 /*--------------------- APPS---------------------------------*/
@@ -102,8 +88,6 @@ const socketServer = require('socket.io')(server);
 const apps = utils.registerApps(appsPath, socketServer);
 
 const io = socketServer.of('/pizi-server');
-io.on('connection', _socket => {
-    socket = _socket;
-    serverState = {...serverState, port, apps};
-    socket.emit("infos", serverState);
+io.on('connection', socket => {
+    setServerState({port, apps});
 });
