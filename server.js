@@ -35,9 +35,6 @@ db.once('open', () => {
 // Get express instance
 const app = express();
 // Cache
-app.use(require('express-mung').json(body => {
-    console.log(body);
-}));
 // app.use(require('./server/modules/pizi-cache')(config.cache));
 // Secure headers
 app.use(helmet());
