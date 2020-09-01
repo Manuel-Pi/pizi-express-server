@@ -15,8 +15,7 @@ module.exports = (config) => {
     routerREST.post('/list', (req, res) => {
         let result = {directories: [], files: []};
         try{
-            const path = req.body.path.match(/\w[\w|_|\/|\s]+/) ? req.body.path : null;
-            if(!path) throw new Error("Path not valid");
+            const path = ( req.body.path && req.body.path.match(/\w[\w|_|\/|\s]+/) ) ? req.body.path : "";
             fs.readdir(basePath + path, (err, files)=>{
                 if(files) for(let file of files) result[ fs.statSync(basePath + path + '/' + file).isDirectory() ? 'directories' : 'files'].push(file);
                 res.json(result);

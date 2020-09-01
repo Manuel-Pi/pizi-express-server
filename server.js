@@ -8,33 +8,8 @@ const fs = require('fs');
 const config = require('./config.json');
 // Get utils functions
 const utils = require('./server/utils');
+// Override logger
 const console = require('./server/logger').getLogger("", config.logger);
-
-let serverState = {
-    db: "connecting...",
-    tokenUrl: config.jwt.token.path,
-    logger: config.logger,
-    rest: config.rest,
-    jwt: config.jwt.needToken,
-    https: config.https
-};
-
-const setServerState = (state = {}) => {
-    serverState = {... serverState, ...state};
-    socketServer.of('/pizi-server').emit("infos", serverState);
-}
-
-/*--------------------- EXPRESS MODULES ---------------------------------*/
-
-// Get express instance
-const app = express();
-// Secure headers
-app.use(helmet());
-// Use body parser to parse json from request body
-app.use(require('body-parser').json());
-// Define a static server
-const appsPath = path.join(__dirname, config.staticServerFolder);
-app.use(express.static(appsPath));
 
 /*--------------------- DATABASE ---------------------------------*/
 
@@ -55,18 +30,31 @@ db.once('open', () => {
     setServerState({db:  "connected"});
 });
 
-/*--------------------- CUSTOM MODULES ---------------------------------*/
+/*--------------------- MODULES ---------------------------------*/
 
+// Get express instance
+const app = express();
+// Cache
+app.use(require('express-mung').json(body => {
+    console.log(body);
+}));
+// app.use(require('./server/modules/pizi-cache')(config.cache));
+// Secure headers
+app.use(helmet());
+// Use body parser to parse json from request body
+app.use(require('body-parser').json());
+// Define a static server
+const appsPath = path.join(__dirname, config.staticServerFolder);
+app.use(express.static(appsPath));
+app.use(express.static(path.join(appsPath, 'server'))); // client server app
+
+// CUSTOM MODULES
 // Use auth for the REST API
 app.use(config.rest.url, require('./server/modules/pizi-jwt')(utils.checkAuth, config.jwt));
 // Define the REST API
 app.use(config.rest.url, require('./server/modules/pizi-rest')(config.rest));
 // Add server utils
 app.use('/utils', require('./server/modules/pizi-server-utils.js')(config.utils));
-
-app.get('/', (req, res) => {
-    res.redirect('/appname');
-});
 
 /*--------------------- CREATE SERVER ---------------------------------*/
 
@@ -76,18 +64,33 @@ const protocol = config.https ? require('https') : require('http');
 const serverOptions = !config.https ? {} : {
     key: fs.readFileSync("./server/certificates/cert.key"),
     cert: fs.readFileSync("./server/certificates/cert.pem")
-}
-console.info("Server protocol is: " + config.https ? "https" : "http");
+};
 // Create server
 const server = protocol.createServer(serverOptions, app);
-server.listen(port, () => console.info('Server started on port ' + port + '...'));
+server.listen(port, () => console.info('Server started on port ' + port + ' (' + (config.https ? "https" : "http") + ')'));
 
 /*--------------------- APPS---------------------------------*/
 
+// Register apps
 const socketServer = require('socket.io')(server);
 const apps = utils.registerApps(appsPath, socketServer);
 
-const io = socketServer.of('/pizi-server');
-io.on('connection', socket => {
-    setServerState({port, apps});
-});
+/*--------------------- NOTIFY---------------------------------*/
+
+// Init server state
+let serverState = {
+    db: "connecting...",
+    tokenUrl: config.jwt.token.path,
+    tokenExpire: config.jwt.token.expire,
+    logger: config.logger,
+    rest: config.rest,
+    jwt: config.jwt.needToken,
+    https: config.https,
+    port
+};
+// Update state function (notify client)
+const setServerState = (state = {}) => {
+    serverState = {... serverState, ...state};
+    socketServer.of('/pizi-server').emit("infos", serverState);
+}
+socketServer.of('/pizi-server').on('connection', socket => setServerState({apps}));

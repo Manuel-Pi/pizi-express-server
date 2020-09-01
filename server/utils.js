@@ -8,8 +8,8 @@ module.exports = {
         // Get Apps
         const apps = fs.readdirSync(appsPath, { withFileTypes: true }).filter(dirent => {
             if(!dirent.isDirectory()) return false;
-            if(fs.existsSync(path.join(appsPath, dirent.name, "server", "server.json"))) return true;
-            console.warn("Socket App: No server.json file found for: " + dirent.name);
+            if(fs.existsSync(path.join(appsPath, dirent.name, "server", "server.json")) && dirent.name !== "server") return true;
+            dirent.name !== "server" && console.warn("Socket App: No server.json file found for: " + dirent.name);
             return false;
         }).map(dirent => {
             const json = require(path.join(appsPath, dirent.name, "server", "server.json"));

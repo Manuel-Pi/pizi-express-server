@@ -37,7 +37,7 @@ module.exports = (check, config) => {
 					} else {
 						req.user = {
 							user: decoded.user,
-							role: decoded.role
+							role: decoded.role || "anonymous"
 						};
 						next();
 					}

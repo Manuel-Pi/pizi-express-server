@@ -3,9 +3,8 @@
 	"https": true,
 	"staticServerFolder": "apps",
 	"logger":{
-		"server": "info",
-		"moins-de-neuf": "info",
-		"appname": "debug"
+		"server": "debug",
+		"moins-de-neuf": "info"
 	},
 	"jwt": {
 		"needToken": false,
@@ -30,16 +29,27 @@
 				"delete": "admin",
 				"attributes": {
 					"_id": "admin",
+					"__v":"admin",
 					"password": "nobody"
 				}
 			},
 			"users": {
 				"all": "anonymous",
 				"attributes": {
-					"role": "admin"
+					"role": "anonymous"
+				}
+			},
+			"games": {
+				"attributes": {
+					"pickStack": "admin",
+					"playedCards": "admin",
+					"quikPlay": "useless"
 				}
 			}
 		}
+	},
+	"cache":{
+		"expirationTime": "1h"
 	},
 	"utils":{
 		
