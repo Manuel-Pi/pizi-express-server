@@ -20,8 +20,7 @@
     "jsonwebtoken": "^5.4.1",
     "memory-cache": "^0.2.0",
     "mongoose": "^5.9.12",
-    "socket.io": "^2.3.0",
-    "speaker": "^0.5.2"
+    "socket.io": "^2.3.0"
   },
   "engines": {
     "node": "13.x"
