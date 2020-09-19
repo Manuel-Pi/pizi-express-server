@@ -18,7 +18,7 @@ mongoose.set('useNewUrlParser', true);
 mongoose.set('useFindAndModify', false);
 mongoose.set('useCreateIndex', true);
 mongoose.set('useUnifiedTopology', true);
-mongoose.connect(process.env.MONGODB_URI || config.db);
+mongoose.connect(process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db);
 const db = mongoose.connection;
 db.on('error', e => {
     console.error('Database connection error!');
@@ -82,10 +82,14 @@ const apps = utils.registerApps(appsPath, socketServer);
 
 /*--------------------- NOTIFY---------------------------------*/
 
+// Hide credentials from URL
+let dbUrl = process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db;
+dbUrl = dbUrl.replace(/\/\/([^@]+)/, (match, p1) => dbUrl.replace(p1, "user:password"));
+
 // Init server state
 let serverState = {
     db: "connecting...",
-    dbUrl: process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db,
+    dbUrl: dbUrl,
     tokenUrl: config.jwt.token.path,
     tokenExpire: config.jwt.token.expire,
     logger: config.logger,
