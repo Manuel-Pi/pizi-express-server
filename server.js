@@ -85,7 +85,7 @@ const apps = utils.registerApps(appsPath, socketServer);
 // Init server state
 let serverState = {
     db: "connecting...",
-    dbUrl: process.env.MONGODB_URI || config.db,
+    dbUrl: process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db,
     tokenUrl: config.jwt.token.path,
     tokenExpire: config.jwt.token.expire,
     logger: config.logger,
