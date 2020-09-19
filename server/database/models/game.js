@@ -8,7 +8,12 @@ const GameSchema = new mongoose.Schema({
     currentPlayer: String,
     action: String,
     turn: Number,
-    quikPlay: Boolean
+    round: Number,
+    quikPlay: Boolean,
+    conf: Object,
+    startTime: Number,
+    roundStartTime: Number,
+    lastTime: Number
 });
 
 module.exports = mongoose.model('Game', GameSchema);

@@ -1,9 +1,15 @@
-var fs = require('fs');
-var express = require('express');
-var mongoose = require('mongoose');
+const path = require('path');
+const express = require('express');
+const mongoose = require('mongoose');
+const helmet = require('helmet');
+const fs = require('fs');
 
 // Get config file
-var config = require('./config.json');
+const config = require('./config.json');
+// Get utils functions
+const utils = require('./server/utils');
+// Override logger
+const console = require('./server/logger').getLogger("", config.logger);
 
 /*--------------------- DATABASE ---------------------------------*/
 
@@ -12,65 +18,89 @@ mongoose.set('useNewUrlParser', true);
 mongoose.set('useFindAndModify', false);
 mongoose.set('useCreateIndex', true);
 mongoose.set('useUnifiedTopology', true);
-mongoose.connect(process.env.MONGODB_URI || config.db);
-var db = mongoose.connection;
-db.on('error', e => console.log('Database connection error:' + e));
-db.once('open', () => {
-    console.log('Database successfully connected!');
+mongoose.connect(process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db);
+const db = mongoose.connection;
+db.on('error', e => {
+    console.error('Database connection error!');
+    console.debug(e);
+    setServerState({db:  "error"});
+});
+db.once('open', () => {  
+    console.info('Database successfully connected!');
+    var admin = new mongoose.mongo.Admin(mongoose.connection.db);
+    admin.buildInfo(function (err, info) {
+        setServerState({dbVersion: info.version});
+    });
+    setServerState({db:  "connected"});
 });
 
-/*--------------------- EXPRESS MODULES ---------------------------------*/
+/*--------------------- MODULES ---------------------------------*/
 
 // Get express instance
-var app = express();
+const app = express();
+// Cache
+// app.use(require('./server/modules/pizi-cache')(config.cache));
+// Secure headers
+//app.use(helmet({
+//    contentSecurityPolicy: false,
+ // }));
 // Use body parser to parse json from request body
 app.use(require('body-parser').json());
-
 // Define a static server
-app.use(express.static(config.staticServerFolder));
+const appsPath = path.join(__dirname, config.staticServerFolder);
+app.use(express.static(appsPath));
+const apisPath = path.join(__dirname, config.apiServerFolder);
+app.use('/api', express.static(apisPath));
+app.use(express.static(path.join(appsPath, 'server'))); // client server app
 
-// Define the authentification function
-function checkAuth(login, password, callback){
-    try{
-        mongoose.models["user"].find({"login": login},
-        function(err, models) {
-            if (err) {
-                callback(true);
-                console.log(err);
-            } else if(models.length > 0 && models[0].get('password') === password) {
-                callback(null, {user: models[0].get('login'), role: models[0].get('role')});
-            } else {
-                callback(true);
-            }
-        });
-    } catch(err){
-        callback(true);
-        console.log(err);
-    }  
-}
-
+// CUSTOM MODULES
 // Use auth for the REST API
-//app.use('/pizi-rest', require('./pizi-jwt.js')(checkAuth, config.jwt));
-
+app.use(config.rest.url, require('./server/modules/pizi-jwt')(utils.checkAuth, config.jwt));
 // Define the REST API
-//app.use('/pizi-rest', require('./pizi-rest.js')(config.rest));
-
+app.use(config.rest.url, require('./server/modules/pizi-rest')(config.rest));
 // Add server utils
-//app.use('/utils', require('./pizi-server-utils.js')(config.utils));
-
+app.use('/utils', require('./server/modules/pizi-server-utils.js')(config.utils));
 
 /*--------------------- CREATE SERVER ---------------------------------*/
 
-// Get launch HTTP server
+// Get server options
 const port = process.env.PORT || config.port;
-var server = require('http').createServer(app);
-server.listen(port, function () {
-    console.log('Server started on port ' + port + '...');
-});
+const protocol = config.https ? require('https') : require('http');
+const serverOptions = !config.https ? {} : {
+    key: fs.readFileSync("./server/certificates/cert.key"),
+    cert: fs.readFileSync("./server/certificates/cert.pem")
+};
+// Create server
+const server = protocol.createServer(serverOptions, app);
+server.listen(port, () => console.info('Server started on port ' + port + ' (' + (config.https ? "https" : "http") + ')'));
 
 /*--------------------- APPS---------------------------------*/
 
-// Add WebSocket Chat
-//require('./pizi-chat.js')(server);
+// Register apps
+const socketServer = require('socket.io')(server);
+const apps = utils.registerApps(appsPath, socketServer);
 
-require('./pizi-moins-de-neuf.js')(server);
+/*--------------------- NOTIFY---------------------------------*/
+
+// Hide credentials from URL
+let dbUrl = process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db;
+dbUrl = dbUrl.replace(/[^:]+:\/\/([^@]+).+/, (match, p1) => dbUrl.replace(p1, "user:password"));
+
+// Init server state
+let serverState = {
+    db: "connecting...",
+    dbUrl: dbUrl,
+    tokenUrl: config.jwt.token.path,
+    tokenExpire: config.jwt.token.expire,
+    logger: config.logger,
+    rest: config.rest,
+    jwt: config.jwt.needToken,
+    https: config.https,
+    port
+};
+// Update state function (notify client)
+const setServerState = (state = {}) => {
+    serverState = {... serverState, ...state};
+    socketServer.of('/pizi-server').emit("infos", serverState);
+}
+socketServer.of('/pizi-server').on('connection', socket => setServerState({apps}));

@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+    mongo:
+        image: mongo
+        volumes:
+            - 'mongodb:/data/db'
+
+    nodejs:
+        image: node:12-alpine
+        ports: 
+            - "8087:8087"
+            - "9229:9229"
+        working_dir: /app
+        volumes:
+            - ./:/app
+            - node_modules:/app/node_modules
+        environment:
+            PORT: 8087
+            MONGODB_URI: "mongodb://mongo/test"
+        command: sh -c "npm install && npm run startNodemon"
+
+volumes: 
+    mongodb:
+    node_modules:

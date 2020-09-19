@@ -1,7 +1,7 @@
-module.exports = function(server){
+module.exports = function(socketServer){
     
     // Get io for a specific namespace
-    var io = require('socket.io').listen(server).of('/pizi-chat');
+    const io = socketServer.of('/pizi-chat');
     
     var users = [];
     var rooms = [{
@@ -82,7 +82,7 @@ module.exports = function(server){
         });
         
         socket.on('message', function (message) {
-            socket.broadcast.to(message.roomId).emit('message', message);
+            io.to(message.roomId).emit('message', message);
         });
         
         socket.on('getUsers', function () {

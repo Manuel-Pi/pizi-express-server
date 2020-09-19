@@ -6,6 +6,8 @@ let NotAuthorizedError = new Error("You are not authorized to proceed this opera
 let NoCredential = new Error("Provide credential!");
 let BadCredential = new Error("Bad credential!");
 
+const CONNECTED_USERS = {};
+
 module.exports = (check, config) => {
 	return (req, res, next) => {
 		delete req.user;
@@ -17,14 +19,38 @@ module.exports = (check, config) => {
 					} else {
 						let token = jwt.sign(Object.assign(config.token.payload, user), config.token.key, {expiresIn: config.token.expire});
 						res.json({
-							jwt: token
+							jwt: token,
+							user: user.user,
+							role: user.role
 						});
+						CONNECTED_USERS[user.user] = {
+							token: token,
+							ip: req.connection.remoteAddress
+						};
+						console.info("token given to: " + user.user + " for IP:" + req.connection.remoteAddress);
 					}
 				});
 			} else {
 				res.status(500).json({message: NoCredential.message});
 			}
-		} else if(req.path === "/"){
+		} else if(req.path === config.token.checkPath){
+			let auth = req.headers.authorization;
+			if(auth && auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)){
+				let token = auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)[1];
+				jwt.verify(token, config.token.key, (err, decoded) => {
+					decoded = decoded || {};
+					if(err || !CONNECTED_USERS[decoded.user] || CONNECTED_USERS[decoded.user].ip !== req.connection.remoteAddress){
+						res.status(500).json({message: err ? err.message : "unknown user ip"});
+					} else {
+						res.json({
+							jwt: token,
+							user: decoded.user,
+							role: decoded.role
+						});
+					}
+				});
+			}
+		}  else if(req.path === "/"){
 			next();
 		} else {
 			let auth = req.headers.authorization;
@@ -37,7 +63,7 @@ module.exports = (check, config) => {
 					} else {
 						req.user = {
 							user: decoded.user,
-							role: decoded.role
+							role: decoded.role || "anonymous"
 						};
 						next();
 					}

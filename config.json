@@ -1,10 +1,18 @@
 {
 	"port": 8087,
-	"staticServerFolder": "./apps",
+	"https": false,
+	"staticServerFolder": "apps",
+	"apiServerFolder": "apis",
+	"logger":{
+		"server": "debug",
+		"moins-de-neuf": "info",
+		"pizi-chat": "info"
+	},
 	"jwt": {
 		"needToken": false,
 		"token": {
 			"path": "/token",
+			"checkPath": "/check",
 			"key": "p!z!K3y",
 			"expire": "1h",
 			"payload":{
@@ -14,20 +22,38 @@
 	},
 	"db": "mongodb://0.0.0.0/test",
 	"rest": {
+		"url": "/pizi-rest",
 		"name": "Pizi RESTFull Server",
 		"restrictions": {
 			"all": {
+				"get": "anonymous",
 				"put": "admin",
 				"post": "admin",
-				"delete": "admin"
+				"delete": "admin",
+				"attributes": {
+					"_id": "admin",
+					"__v":"admin",
+					"password": "nobody"
+				}
 			},
-			"user": {
+			"users": {
 				"all": "admin",
 				"attributes": {
-					"role": "superAdmin"
+					"role": "anonymous"
+				}
+			},
+			"games": {
+				"all": "admin",
+				"attributes": {
+					"pickStack": "admin",
+					"playedCards": "admin",
+					"quikPlay": "useless"
 				}
 			}
 		}
+	},
+	"cache":{
+		"expirationTime": "1h"
 	},
 	"utils":{
 		
