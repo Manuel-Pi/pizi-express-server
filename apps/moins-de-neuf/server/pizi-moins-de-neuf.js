@@ -1,9 +1,10 @@
 const CardManager = require('./pizi-moins-de-neuf-gameManager.js');
-const mongoose = require('mongoose');
+var mongoose = require('mongoose');
 
-module.exports = (socketServer, logger) => {
+module.exports = function(socketServer){
     // Get io for a specific namespace
     const io = socketServer.of('/pizi-moins-de-neuf');
+ console.log("asdadasdasdasdsa");
     // Init state
     let CONNEXION_ON = true;
     let PLAYERS = {};
@@ -11,23 +12,21 @@ module.exports = (socketServer, logger) => {
     let KICKABLE_PLAYERS = {};
     let KICKABLE_GAMES = {};
 
-    let console = logger;
-
     // Init game from DB
     mongoose.connection.once('open', () => {
         CardManager.getGames( games => GAMES = games);
     });
 
-    io.on('connection', socket => {
+    io.on('connection', function (socket) {
 
         /*************** CONNECTIONS *****************/
-        console.debug("Client connected to socket");
+        console.log("connection");
         socket.on('login', username => {
             if(!username) return;
             login(socket, username);
         });
 
-        socket.on('reconnectUser', (username) => {
+        socket.on('reconnectUser', function(username){
             if(!username) return;
             login(socket, username);
 
@@ -47,18 +46,18 @@ module.exports = (socketServer, logger) => {
                     if(KICKABLE_PLAYERS[username]){
                         clearTimeout(KICKABLE_PLAYERS[username]);
                         delete KICKABLE_PLAYERS[username];
-                        console.debug(username + ' removed from timeouts!');
+                        console.info(username + ' removed from timeouts!');
                     }
 
-                    console.debug(username + ' successfully reconnected!');
+                    console.info(username + ' successfully reconnected!');
                 });
             });
             socket.emit('setGames', CardManager.getPublicGames(GAMES));
             socket.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
          });
 
-        socket.on('disconnect', (reason) => {
-            console.debug(socket.player + ' disconnected because ' + reason);
+        socket.on('disconnect', function(reason){
+            console.info(socket.player + ' disconnected because ' + reason);
             let [game, player] = getGameAndPlayer(socket);
             if(!player) return;
 
@@ -102,7 +101,7 @@ module.exports = (socketServer, logger) => {
             while(i--){
                 if(!io.sockets[game.players[i].id]){
                     CardManager.kickPlayer(game.players[i], GAMES[socket.game], GAMES);
-                    console.debug("Kick " + game.players[i].name);
+                    console.info("Kick " + game.players[i].name);
                     return;
                 }
             }
@@ -134,7 +133,7 @@ module.exports = (socketServer, logger) => {
            
             if(Object.keys(GAMES).length > gameNumber){
                 io.emit('setGames', CardManager.getPublicGames(GAMES));
-                console.debug('Game created: ' + gameProps.name);
+                console.info('Game created: ' + gameProps.name);
                 socket.emit('gameCreated');
             }
         });
@@ -145,7 +144,7 @@ module.exports = (socketServer, logger) => {
             CardManager.removeGame(GAMES[gameName]);
             delete GAMES[gameName];
             io.emit('setGames', CardManager.getPublicGames(GAMES));
-            console.debug('Game removed: ' + gameName);
+            console.info('Game removed: ' + gameName);
         });
 
         /**************** GAME ACTIONS ***********************/
@@ -290,7 +289,7 @@ module.exports = (socketServer, logger) => {
                 io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, false, true));
                 console.debug(player.name + " played " + JSON.stringify(originalCards));
             } else {
-                console.error("Cards are not matching what server expect! " + JSON.stringify(cards));
+                console.error("Cards are not matching what server excpect! " + JSON.stringify(cards));
             }
         });
 
@@ -318,7 +317,7 @@ module.exports = (socketServer, logger) => {
                 return;
             }
 
-            console.debug(player.name + " call for refresh. ");
+            console.info(player.name + " call for refresh. ");
             socket.emit('gameInfo', CardManager.getPublicGameInfo(game));
             socket.emit('setHand', player.hand);
         });
@@ -339,7 +338,7 @@ module.exports = (socketServer, logger) => {
             name: username
         };
         socket.player = username;
-        console.debug('Connexion of : ' + username);
+        console.info('Connexion of : ' + username);
         socket.emit('setGames', CardManager.getPublicGames(GAMES));
         socket.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
     }

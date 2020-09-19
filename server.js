@@ -27,6 +27,10 @@ db.on('error', e => {
 });
 db.once('open', () => {  
     console.info('Database successfully connected!');
+    var admin = new mongoose.mongo.Admin(mongoose.connection.db);
+    admin.buildInfo(function (err, info) {
+        setServerState({dbVersion: info.version});
+    });
     setServerState({db:  "connected"});
 });
 
@@ -40,12 +44,16 @@ app.use(require('express-mung').json(body => {
 }));
 // app.use(require('./server/modules/pizi-cache')(config.cache));
 // Secure headers
-app.use(helmet());
+//app.use(helmet({
+//    contentSecurityPolicy: false,
+ // }));
 // Use body parser to parse json from request body
 app.use(require('body-parser').json());
 // Define a static server
 const appsPath = path.join(__dirname, config.staticServerFolder);
 app.use(express.static(appsPath));
+const apisPath = path.join(__dirname, config.apiServerFolder);
+app.use('/api', express.static(apisPath));
 app.use(express.static(path.join(appsPath, 'server'))); // client server app
 
 // CUSTOM MODULES
@@ -80,6 +88,7 @@ const apps = utils.registerApps(appsPath, socketServer);
 // Init server state
 let serverState = {
     db: "connecting...",
+    dbUrl: process.env.MONGODB_URI || config.db,
     tokenUrl: config.jwt.token.path,
     tokenExpire: config.jwt.token.expire,
     logger: config.logger,

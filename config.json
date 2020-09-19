@@ -2,14 +2,17 @@
 	"port": 8087,
 	"https": true,
 	"staticServerFolder": "apps",
+	"apiServerFolder": "apis",
 	"logger":{
 		"server": "debug",
-		"moins-de-neuf": "info"
+		"moins-de-neuf": "info",
+		"pizi-chat": "info"
 	},
 	"jwt": {
 		"needToken": false,
 		"token": {
 			"path": "/token",
+			"checkPath": "/check",
 			"key": "p!z!K3y",
 			"expire": "1h",
 			"payload":{

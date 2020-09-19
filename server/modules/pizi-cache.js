@@ -33,20 +33,6 @@ module.exports = (config) => {
                 cache.put(url, body, expirationTime);
                 res.sendNoCache(body); 
             };
-            res.renderNoCache = res.render;
-            res.render = ( view, options, fn ) => {
-                // continue with original render
-                res.renderNoCache(view, options, (err, body) => {
-                    cache.put(url, body, expirationTime);
-                    fn(err, body);
-                });
-            }
-            res.endNoCache = res.end;
-            res.end = (a) => {
-                console.error(a);
-                res.endNoCache(a);
-                console.error("body", res.body);
-            }
         }
         next();
         console.log(res.body);

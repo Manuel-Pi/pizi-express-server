@@ -82,7 +82,7 @@ module.exports = function(socketServer){
         });
         
         socket.on('message', function (message) {
-            socket.broadcast.to(message.roomId).emit('message', message);
+            io.to(message.roomId).emit('message', message);
         });
         
         socket.on('getUsers', function () {

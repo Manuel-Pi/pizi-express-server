@@ -37,7 +37,7 @@ define(['module', 'exports', 'backbone', 'text!html/chat.html', 'text!html/messa
         addMessage: function (message, send) {
             if (message && message.text !== "") {
                 var $render = this.$el.find('.render');
-                $render.append(_.template(_message2.default)({ message: message, type: send ? "sent" : "received" }));
+                $render.append(_.template(_message2.default)({ message: message, type: App.user === message.user ? "sent" : "received" }));
                 $render[0].scrollTop = $render[0].scrollHeight;
             }
         },
@@ -49,7 +49,6 @@ define(['module', 'exports', 'backbone', 'text!html/chat.html', 'text!html/messa
                 roomId: this.room.id
             };
             $text.val("");
-            this.addMessage(message, true);
             if (message.text) App.socket.emit('message', message);
         },
         render: function () {
