@@ -84,7 +84,7 @@ const apps = utils.registerApps(appsPath, socketServer);
 
 // Hide credentials from URL
 let dbUrl = process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db;
-dbUrl = dbUrl.replace(/\/\/([^@]+)/, (match, p1) => dbUrl.replace(p1, "user:password"));
+dbUrl = dbUrl.replace(/mongodb:\/\/([^@]+).+/, (match, p1) => dbUrl.replace(p1, "user:password"));
 
 // Init server state
 let serverState = {
