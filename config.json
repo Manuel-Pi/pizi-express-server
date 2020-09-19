@@ -37,12 +37,13 @@
 				}
 			},
 			"users": {
-				"all": "anonymous",
+				"all": "admin",
 				"attributes": {
 					"role": "anonymous"
 				}
 			},
 			"games": {
+				"all": "admin",
 				"attributes": {
 					"pickStack": "admin",
 					"playedCards": "admin",
