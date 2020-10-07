@@ -4,7 +4,7 @@
 	"staticServerFolder": "apps",
 	"apiServerFolder": "apis",
 	"logger":{
-		"server": "debug",
+		"server": "info",
 		"moins-de-neuf": "info",
 		"pizi-chat": "info"
 	},
