@@ -3,31 +3,48 @@ module.exports = function(socketServer){
     // Get io for a specific namespace
     const io = socketServer.of('/pizi-chat');
     
-    var users = [];
-    var rooms = [{
+    const users = [];
+    const rooms = [{
         id: 'general',
         name: 'General',
         authorized: 'All',
         connected: []
     }];
 
+    const activeUsers = [];
+
     // On connection
     io.on('connection', function (socket) {
         
         socket.on('login', function (pseudo) {
             if(pseudo){
-                if(users.indexOf(pseudo) == -1){
+                if(users.indexOf(pseudo) === -1){
                     socket.user = pseudo;
                     users.push(pseudo);
                     console.log('Connection: ' + pseudo);
                     socket.emit('loginSuccess', {
                         users: users,
-                        rooms: [rooms[0]]
+                        rooms
                     });
                     socket.broadcast.emit('userJoin', pseudo);
                 } else {
-                    socket.emit('unauthorized', {message: 'User already exist!'});
-                } 
+                    socket.user = pseudo;
+                    console.log('Connection: ' + pseudo);
+                    socket.emit('loginSuccess', {
+                        users: users,
+                        rooms
+                    });
+                    socket.broadcast.emit('userJoin', pseudo);
+                    //socket.emit('unauthorized', {message: 'User already exist!'});
+                }
+
+                const existingSocket = activeUsers.find(
+                    existingSocket => existingSocket === socket.id
+                );
+              
+                if (!existingSocket) {
+                    activeUsers.push(socket.id);
+                }
             } else {
                 socket.emit('unauthorized', {message: 'User cannot be empty!'});
             }
@@ -41,6 +58,10 @@ module.exports = function(socketServer){
                 users.splice(i, 1);
             }
             socket.broadcast.emit('userLeft', socket.user);
+
+            activeSockets = activeUsers.filter(
+                existingSocket => existingSocket !== socket.id
+              );
         });
         
         socket.on('joinRoom', function (roomId) {
@@ -68,7 +89,7 @@ module.exports = function(socketServer){
                    socket.broadcast.to(room.id).emit('userLeaveRoom', {roomId: room.id, user: user});
                    console.log(user + " leave room: " + room.id);
                    if(room.connected.length === 0 && room.authorized !== 'All'){
-                       rooms.splice(i, 1);
+                      // rooms.splice(i, 1);
                        console.log("Room " + room.name + " closed because no one's left!");
                    }
                    if(roomId) break;
@@ -82,6 +103,13 @@ module.exports = function(socketServer){
         });
         
         socket.on('message', function (message) {
+
+            const room = rooms.filter(room => room.id === message.roomId)[0];
+            if(room){
+                room.messages.push(message);
+                if(room.messages.length > 20) room.messages.shift();
+            }
+
             io.to(message.roomId).emit('message', message);
         });
         
@@ -90,19 +118,27 @@ module.exports = function(socketServer){
         });
         
         socket.on('addRoom', function(room){
-            if(room) {
+            const existngRoom = rooms.filter(r => r.id === room.id)[0];
+            if(!existngRoom) {
                 room.connected = [];
+                room.messages = [];
                 socket.emit('roomAdded', room);
+                rooms.push(room);
                 if(room.authorized === 'All'){
                     socket.broadcast.emit('roomAdded', room);
                 } else {
-                    for(so of io.sockets){
-                        if(room.authorized.indexOf(so.user) !== -1 && socket.id !== so.id){
-                            so.emit('roomAdded', room);
+                    for(user of room.authorized){
+                        socket.broadcast.to(user).emit('roomAdded', room);
+                        var authorizedRooms = [];
+                        for(var r of rooms){
+                            if(r.authorized === "All" || r.author === user || r.authorized.indexOf(user) !== -1){
+                                authorizedRooms.push(r);
+                            }
                         }
+                        socket.join(r.id);
+                        socket.emit('roomList', authorizedRooms);
                     }
                 }
-                rooms.push(room);
                 console.log("Room created");
             }
         });
