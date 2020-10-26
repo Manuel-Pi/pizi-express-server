@@ -15,7 +15,13 @@ module.exports = (check, config) => {
 			if(req.headers.login && req.headers.password){
 				check(req.headers.login, req.headers.password, (err, user) => {
 					if(err){
-						res.status(500).json({message: BadCredential.message});
+						if(err === "wrong password"){
+							res.json({
+								exist: true
+							});
+						} else {
+							res.status(500).json({message: BadCredential.message});
+						}
 					} else {
 						let token = jwt.sign(Object.assign(config.token.payload, user), config.token.key, {expiresIn: config.token.expire});
 						res.json({
@@ -39,9 +45,10 @@ module.exports = (check, config) => {
 				let token = auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)[1];
 				jwt.verify(token, config.token.key, (err, decoded) => {
 					decoded = decoded || {};
-					if(err || !CONNECTED_USERS[decoded.user] || CONNECTED_USERS[decoded.user].ip !== req.connection.remoteAddress){
+					// TODO: || !CONNECTED_USERS[decoded.user] || CONNECTED_USERS[decoded.user].ip !== req.connection.remoteAddress
+					if(err){
 						res.status(500).json({message: err ? err.message : "unknown user ip"});
-					} else {
+					} else if(decoded && decoded.user){
 						res.json({
 							jwt: token,
 							user: decoded.user,

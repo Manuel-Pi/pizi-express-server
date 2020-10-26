@@ -50,7 +50,7 @@ module.exports = (config) => {
         }
 
         // Default Attributes
-        let attributes = Object.assign(defaultRestrictions.attributes, restriction.attributes);
+        let attributes = {...defaultRestrictions.attributes, ...restriction.attributes};
         for (let key of Object.keys(attributes)) {
             if(!req.user || attributes[key] !== req.user.role){
                 req.attributesBlackList[key] = 0;
@@ -131,6 +131,29 @@ module.exports = (config) => {
             }
         }
     });
+
+    routerREST.route('/users/:login').get((req, res) => {
+        let store = req.path.split('/')[1];
+        if(!req.user) return;
+        if(req.params.login === req.user.user){
+            try{
+                let Model = getMoogouseModel(store);
+                Model.findOne({login: req.params.login}, ["-password", "-_id"], (err, model) => {
+                    if (err) {
+                        res.status(500).json({message: OperationError.message});
+                        console.log(err);
+                    } else {
+                        res.json(model);
+                    }
+                });
+            } catch(err){
+                res.status(500).json({message: StoreNotFoundError.message});
+                console.log(err);
+            }
+        } else {
+            res.status(500).json({message: OperationError.message});
+        }
+    })
     
     // URL matching '/store/id' patern
     routerREST.route('/*/:model_id').get((req, res) => {

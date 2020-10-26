@@ -5,7 +5,7 @@
 	"apiServerFolder": "apis",
 	"logger":{
 		"server": "info",
-		"moins-de-neuf": "info",
+		"moins-de-neuf": "debug",
 		"pizi-chat": "info"
 	},
 	"jwt": {
@@ -14,7 +14,7 @@
 			"path": "/token",
 			"checkPath": "/check",
 			"key": "p!z!K3y",
-			"expire": "1h",
+			"expire": "30d",
 			"payload":{
 				"iss": "http://localhost:8087"
 			}
@@ -37,7 +37,6 @@
 				}
 			},
 			"users": {
-				"all": "admin",
 				"attributes": {
 					"role": "anonymous"
 				}

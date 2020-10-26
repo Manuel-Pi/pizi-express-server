@@ -1,4 +1,4 @@
-module.exports = function(socketServer){
+module.exports = function(socketServer, console){
     
     // Get io for a specific namespace
     const io = socketServer.of('/pizi-chat');
@@ -65,6 +65,7 @@ module.exports = function(socketServer){
         });
         
         socket.on('joinRoom', function (roomId) {
+            if(!socket.user) return;
             for(var room of rooms){
                 if(room.id === roomId){
                     if(room.authorized === "All" || room.author === socket.user || room.authorized.indexOf(socket.user) > -1){
@@ -139,7 +140,7 @@ module.exports = function(socketServer){
                         socket.emit('roomList', authorizedRooms);
                     }
                 }
-                console.log("Room created");
+                console.log("Room " + room.id + " created");
             }
         });
         

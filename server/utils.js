@@ -42,6 +42,8 @@ module.exports = {
                     console.debug(err);
                 } else if(models.length > 0 && models[0].get('password') === password) {
                     callback(null, {user: models[0].get('login'), role: models[0].get('role')});
+                } else if(models.length > 0){
+                    callback("wrong password");
                 } else {
                     callback(true);
                 }
