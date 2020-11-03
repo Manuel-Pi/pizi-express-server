@@ -1,7 +1,7 @@
 module.exports = function(socketServer, console){
     
     // Get io for a specific namespace
-    const io = socketServer.of('/pizi-chat');
+    const io = socketServer.of(/^\/pizi-chat(\/\w+)*$/);
     
     const users = [];
     const rooms = [{
@@ -13,8 +13,27 @@ module.exports = function(socketServer, console){
 
     const activeUsers = [];
 
+
+    const getNamespace = () => {
+
+    };
+
+    // this middleware will be assigned to each namespace
+    io.use((socket, next) => {
+        // ensure the user has access to the workspace
+        if (true) {
+            console.info("New connection on: " + socket.nsp.name)
+            next();
+        } else {
+            next(new Error('forbidden'));
+        }
+    });
+
     // On connection
     io.on('connection', function (socket) {
+
+        const workspace = socket.nsp;
+        console.log("connection: ");
         
         socket.on('login', function (pseudo) {
             if(pseudo){
@@ -104,14 +123,21 @@ module.exports = function(socketServer, console){
         });
         
         socket.on('message', function (message) {
-
             const room = rooms.filter(room => room.id === message.roomId)[0];
             if(room){
                 room.messages.push(message);
                 if(room.messages.length > 20) room.messages.shift();
             }
-
             io.to(message.roomId).emit('message', message);
+        });
+
+        socket.on("audioMessage", function(message) {
+            const room = rooms.filter(room => room.id === message.roomId)[0];
+            if(room){
+                room.messages.push(message);
+                if(room.messages.length > 20) room.messages.shift();
+            }
+            io.to(message.roomId).emit("audioMessage", message);
         });
         
         socket.on('getUsers', function () {
