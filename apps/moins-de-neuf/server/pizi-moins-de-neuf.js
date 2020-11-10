@@ -111,7 +111,7 @@ module.exports = function(socketServer, console, url){
             // Update chat room
             ioClientChat.emit("updateRoom", {
                 id: game.name,
-                allowedUsers: game.players.map(player => player.name)
+                allowedUsers: [...game.players.map(player => player.name), ...game.spectators.map(player => player.name)]
             })
 
             // Clean players

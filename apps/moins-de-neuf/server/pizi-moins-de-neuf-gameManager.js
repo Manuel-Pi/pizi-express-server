@@ -36,9 +36,9 @@ const addPlayer = (player, game) => {
 const addSpectator = (player, game) => {
     if(!player || !game) return;
 
-    game.specators = game.specators || [];
-    if(game.specators.filter(specator => specator.name === player.name).length) return;
-    game.specators.push(player);
+    game.spectators = game.spectators || [];
+    if(game.spectators.filter(spectator => spectator.name === player.name).length) return;
+    game.spectators.push(player);
 }
 
 const getGames = (callback) => {
