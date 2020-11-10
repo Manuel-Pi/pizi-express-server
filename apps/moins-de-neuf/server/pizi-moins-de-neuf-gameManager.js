@@ -4,12 +4,13 @@ const GameModel = require('./database/models/game');
 const PlayerModel = require('./database/models/player');
 
 const addPlayer = (player, game) => {
-
     if(!player || !game) return;
+
+    const startScore = game.round ? Math.round(game.players.reduce((total, player) => total + player.score, 0) / game.players.length): 0;
 
     game.players.push({
         ...player,
-        score: 0,
+        score: startScore,
         scoreStreak: 0,
         hand: [],
         ready: player.ready || false,
@@ -30,6 +31,14 @@ const addPlayer = (player, game) => {
             }
         }
     });
+}
+
+const addSpectator = (player, game) => {
+    if(!player || !game) return;
+
+    game.specators = game.specators || [];
+    if(game.specators.filter(specator => specator.name === player.name).length) return;
+    game.specators.push(player);
 }
 
 const getGames = (callback) => {
@@ -245,6 +254,9 @@ const endRound = (game, callingPlayer) => {
             }
         });
     }
+
+    if(game.specators) game.specators.forEach(spectator => addPlayer(spectator, game));
+    game.specators = [];
 
     return {scores, winners, announcer: callingPlayer};
 }
@@ -592,5 +604,6 @@ module.exports = {
     checkPlayedCards,
     removeGame,
     getCurrentGameForPlayer,
-    addPlayer
+    addPlayer,
+    addSpectator
 }
