@@ -78,7 +78,8 @@ server.listen(port, () => console.info('Server started on port ' + port + ' (' +
 
 // Register apps
 const socketServer = require('socket.io')(server);
-const apps = utils.registerApps(appsPath, socketServer);
+const apps = utils.registerApps(appsPath, socketServer, config.https ? "https://localhost:" + port : "http://localhost:" + port);
+const apis = utils.registerApps(apisPath, socketServer, config.https ? "https://localhost:" + port : "http://localhost:" + port);
 
 /*--------------------- NOTIFY---------------------------------*/
 

@@ -4,7 +4,7 @@ const console = require('./logger').getLogger();
 
 module.exports = {
     // Register web apps
-    registerApps(appsPath, socketServer){
+    registerApps(appsPath, socketServer, serverUrl){
         // Get Apps
         const apps = fs.readdirSync(appsPath, { withFileTypes: true }).filter(dirent => {
             if(!dirent.isDirectory()) return false;
@@ -20,7 +20,7 @@ module.exports = {
         apps.forEach(app => {
             try{
                 console.info("Socket App: " + app.name + " detected, trying to install..."); 
-                if(app.type === "socket") require(app.entry)(socketServer,require('./logger').getLogger(app.name));
+                if(app.type === "socket") require(app.entry)(socketServer,require('./logger').getLogger(app.name), serverUrl);
                 console.info("Socket App: " + app.name + " successfully installed!"); 
             } catch(e){
                 console.warn("Socket App: Error while installing: " + app.entry + "!"); 
