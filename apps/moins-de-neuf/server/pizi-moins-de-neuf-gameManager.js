@@ -114,6 +114,7 @@ const createGame = (games, gameData = {name}, force = false) => {
         name: gameData.name,
         authorized: gameData.authorized,
         players: [],
+        spectators: [],
         playedCards: [],
         pickStack: CardGame.generateCards(),
         currentPlayer: null,
@@ -433,6 +434,7 @@ const getPublicGameInfo = (game, gameFinished = false, setTime = false)=> {
             scoreStreak: player.scoreStreak,
             ready: player.ready,
             stats: player.stats,
+            bot: player.bot || false,
             hand: []
         }
     });

@@ -30,7 +30,7 @@ export class Room{
         this.private = options.private || false;
         this.users = options.users ? options.users.map(user => new User(user)) : [];
         this.allowedUsers = options.allowedUsers || [];
-        if(this.owner && this.private && !this.allowedUsers.includes(this.owner.name)) this.allowedUsers.push(this.owner.name);
+        if(this.owner && this.private && !this.allowedUsers.includes(this.owner.name) && this.owner.name !== "default") this.allowedUsers.push(this.owner.name);
         this.messages = options.messages || [];
         this.creation = new Date().getTime();
     }

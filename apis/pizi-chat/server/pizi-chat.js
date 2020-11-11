@@ -74,7 +74,7 @@ module.exports = (socketServer, console) => {
             const [user, namespace] = Namespace.getDataFromSocket(socket);
             namespace.leaveRoom(roomId, user, room => {
                 socket.leave(roomId);
-                socket.broadcast.to(room.id).emit('userLeaveRoom', {name: room.name, user: user.name});
+                socket.broadcast.to(room.id).emit('userLeaveRoom', {room, username: user.name});
                 updateRoomForUsers(namespace);
             }, room => updateRoomForUsers(namespace));
         });
