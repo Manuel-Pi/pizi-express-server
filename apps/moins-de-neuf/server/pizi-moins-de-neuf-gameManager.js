@@ -255,8 +255,8 @@ const endRound = (game, callingPlayer) => {
         });
     }
 
-    if(game.specators) game.specators.forEach(spectator => addPlayer(spectator, game));
-    game.specators = [];
+    if(game.spectators) game.spectators.forEach(spectator => addPlayer(spectator, game));
+    game.spectators = [];
 
     return {scores, winners, announcer: callingPlayer};
 }
@@ -415,7 +415,8 @@ const getPublicGames = (games) => {
             name,
             players: gameInfo.players,
             action: gameInfo.action,
-            conf: gameInfo.conf
+            conf: gameInfo.conf,
+            spectators: gameInfo.spectators || []
         }
     })
 }
@@ -458,7 +459,8 @@ const getPublicGameInfo = (game, gameFinished = false, setTime = false)=> {
         startTime: game.startTime,
         turn: game.turn,
         roundStartTime: game.roundStartTime,
-        round: game.round
+        round: game.round,
+        spectators: game.spectators || []
     }
 };
 
