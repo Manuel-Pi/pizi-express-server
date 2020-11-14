@@ -105,6 +105,8 @@ module.exports = function(socketServer, console, url){
             game.spectators = game.spectators || [];
             !game.action ? CardManager.addPlayer(player, game) : CardManager.addSpectator(player, game);
 
+            if(game.action) playForBot(game, socket);
+
             // Join Room
             socket.join(gameName);
             CardManager.saveGame(game);
