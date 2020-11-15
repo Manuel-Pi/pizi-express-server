@@ -31,6 +31,9 @@ const addPlayer = (player, game) => {
             }
         }
     });
+
+    game.lastTime = (new Date()).getTime();
+
 }
 
 const addSpectator = (player, game) => {
@@ -394,6 +397,7 @@ const nextAction = (game)=> {
         default:
             game.action = "play";
     }
+    game.lastTime = (new Date()).getTime();
 }
 
 const getPublicGames = (games) => {
@@ -406,7 +410,6 @@ const getPublicGames = (games) => {
             removeGame(game);
             console.info('Delete game: ' + game.name + ' after ' + Math.round(((new Date()).getTime() - game.lastTime) / 1000) + "s");
             delete games[Object.keys(games)[i]];
-            
         }
     } 
 
@@ -609,5 +612,6 @@ module.exports = {
     removeGame,
     getCurrentGameForPlayer,
     addPlayer,
-    addSpectator
+    addSpectator,
+    valueToMillisecond
 }
