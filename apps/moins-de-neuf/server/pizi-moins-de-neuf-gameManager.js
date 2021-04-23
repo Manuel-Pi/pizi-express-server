@@ -351,6 +351,9 @@ const kickPlayer = (player, game, games) => {
     if(game.currentPlayer === player.name) game.currentPlayer = index + 1 < game.players.length ? game.players[index + 1].name : 0;
     if(index !== -1) game.players.splice(index, 1);
 
+    const specIndex = game.spectators.indexOf(player);
+    if(specIndex !== -1) game.spectators.splice(specIndex, 1);
+
     if(game.players.length === 0 && games) createGame(games, game.conf, true);
 }
 

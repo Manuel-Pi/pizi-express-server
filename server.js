@@ -24,7 +24,7 @@ db.on('error', e => {
     console.error('Database connection error!');
     console.debug(e);
     setServerState({db:  "error"});
-});
+}).catch(() => {});
 db.once('open', () => {  
     console.info('Database successfully connected!');
     var admin = new mongoose.mongo.Admin(mongoose.connection.db);
@@ -32,7 +32,7 @@ db.once('open', () => {
         setServerState({dbVersion: info.version});
     });
     setServerState({db:  "connected"});
-});
+}).catch(() => {});
 
 /*--------------------- MODULES ---------------------------------*/
 

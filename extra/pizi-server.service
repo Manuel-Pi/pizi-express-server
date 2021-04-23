@@ -1,0 +1,13 @@
+[Unit]
+Description=Pizi Server
+After=network.target
+
+[Service]
+Environment=NODE_ENV=production 
+Environment=PORT=8087
+WorkingDirectory=/home/ec2-user/pizi-express-server
+ExecStart=/home/ec2-user/.nvm/versions/node/v15.14.0/bin/node server.js
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

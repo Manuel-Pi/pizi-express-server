@@ -401,6 +401,9 @@ module.exports = function(socketServer, console, url){
     let botPlaying = false;
     function playForBot(game, socket){
         if(botPlaying || game.endGame) return;
+        game.spectators = game.spectators || [];
+        if((game.players.length + game.spectators.length) <= game.conf.bots) return;
+
         let currentPlayer;
         let onePlayerHaveLessThan3Cards = false;
         game.players.forEach(player => {
