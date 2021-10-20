@@ -16,7 +16,8 @@
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.19.0",
-    "express": "^4.13.3",
+    "connect-history-api-fallback": "^1.6.0",
+    "express": "^4.17.1",
     "helmet": "^4.1.0",
     "jsonwebtoken": "^5.4.1",
     "memory-cache": "^0.2.0",
@@ -27,9 +28,23 @@
     "node": "13.x"
   },
   "devDependencies": {
+    "copy-webpack-plugin": "^6.0.3",
+    "css-loader": "^3.5.2",
+    "css-minimizer-webpack-plugin": "^2.0.0",
+    "extract-loader": "^5.0.1",
+    "file-loader": "^6.0.0",
+    "less": "^3.11.1",
+    "less-loader": "^5.0.0",
+    "mini-css-extract-plugin": "^1.5.0",
     "nodemon": "^2.0.4",
+    "optimize-css-assets-webpack-plugin": "^5.0.3",
     "replace": "^1.2.0",
-    "typescript": "^4.0.5"
+    "source-map-loader": "^0.2.4",
+    "style-loader": "^1.1.4",
+    "ts-loader": "^9.2.6",
+    "typescript": "^4.0.5",
+    "webpack": "^5.35.1",
+    "webpack-dev-middleware": "^5.2.1"
   },
   "repository": {
     "type": "git",

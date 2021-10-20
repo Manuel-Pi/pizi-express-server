@@ -1,6 +1,6 @@
 
 
-module.exports = (socketServer, console) => {
+module.exports = ({socketServer, console}) => {
 
     const { Namespace, DEFAULT_ROOM__NAME} = require("./models/dist/namespace");
 

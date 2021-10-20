@@ -3,17 +3,15 @@ const CardGame = require('./pizi-card-game');
 const mongoose = require('mongoose');
 const ioClient = require('socket.io-client');
 
-module.exports = function(socketServer, console, url){
+module.exports = function({socketServer, console, host}){
     // Get io for a specific namespace
     const io = socketServer.of('/pizi-moins-de-neuf');
-    const ioClientChat = ioClient(url + '/pizi-chat/moinsdeneuf');
+    const ioClientChat = ioClient(host + '/pizi-chat/moinsdeneuf');
 
     // Init state
-    let CONNEXION_ON = true;
-    let PLAYERS = {};
-    let GAMES = {};
-    let KICKABLE_PLAYERS = {};
-    let KICKABLE_GAMES = {};
+    let PLAYERS = {}
+    let GAMES = {}
+    let KICKABLE_PLAYERS = {}
 
     // Init game from DB
     mongoose.connection.once('open', () => {
@@ -37,8 +35,10 @@ module.exports = function(socketServer, console, url){
 
         socket.on('login', (username, token) => {
             if(!username) return;
-            login(socket, username, token);
-        });
+            console.log(getConnectedPlayers())
+            login(socket, username, token)
+            io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES))
+        })
 
         socket.on('reconnectUser', (username, token) => {
             if(!username) return;
@@ -71,7 +71,7 @@ module.exports = function(socketServer, console, url){
             let [game, player] = getGameAndPlayer(socket);
             if(!player) return;
 
-            if(game.conf.playerKickTimeout !== "Jamais" && !KICKABLE_PLAYERS[player.name]) KICKABLE_PLAYERS[player.name] = setTimeout( () => {
+            if(game.conf.playerKickTimeout !== ("Infini" || "Jamais") && !KICKABLE_PLAYERS[player.name]) KICKABLE_PLAYERS[player.name] = setTimeout( () => {
                 CardManager.kickPlayer(player, game, GAMES);
                 CardManager.saveGame(game);
                 io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
@@ -127,21 +127,31 @@ module.exports = function(socketServer, console, url){
         });
 
         socket.on('quit', (disconnect) => {
-            let [game, player] = getGameAndPlayer(socket);
-            if(!player) return;
+            const socketPlayer = PLAYERS[socket.player]
+            if(!socketPlayer) return;
 
-            CardManager.kickPlayer(player, game, GAMES);
-            socket.leave(game.name);
-            socket.broadcast.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
-            socket.emit('gameInfo', null);
-            CardManager.saveGame(game);
-            io.emit('setGames', CardManager.getPublicGames(GAMES));
-            io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
+            let [game, player] = getGameAndPlayer(socket);
+            if(game){
+                CardManager.kickPlayer(player, game, GAMES);
+                socket.leave(game.name);
+                socket.broadcast.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
+                socket.emit('gameInfo', null);
+                CardManager.saveGame(game);
+                io.emit('setGames', CardManager.getPublicGames(GAMES));
+            }
+            
             // Disconnect from socket if needed
-            disconnect && socket.disconnect();
+            if(disconnect){
+                socket.disconnect()
+                const delResult = delete PLAYERS[socketPlayer.name]
+                console.log("Remove user from array = " + delResult)
+            }
+
+            io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES))
         });
 
         socket.on('createGame', gameProps => {
+            if(!gameProps) return
             const gameNumber = Object.keys(GAMES).length;
             if(gameNumber > 10) return;
             CardManager.saveGame(CardManager.createGame(GAMES, gameProps));
@@ -548,5 +558,10 @@ module.exports = function(socketServer, console, url){
                     return;
             }
         }
+    }
+
+    function getConnectedPlayers(){
+        const connected = io.clients().connected
+        return [...new Set(Object.keys(connected).map(key => connected[key].player))]
     }
 }

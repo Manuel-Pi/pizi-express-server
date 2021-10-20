@@ -50,24 +50,24 @@ module.exports = {
 
         
         return {
-            debug: function(text){
+            debug: function(text, err){
                 if(logLevelValue > 0) return;
-                console.debug('\x1b[37mDEBUG' + stringDate + '%s\x1b[0m', text);
+                console.debug('\x1b[37mDEBUG' + stringDate + '%s\x1b[0m', text, err || "");
             },
-            info: function (text) {
+            info: function (text, err) {
                 if(logLevelValue > 1) return;
-                console.info('\x1b[36mINFO' + stringDate + '%s\x1b[0m', text);
+                console.info('\x1b[36mINFO' + stringDate + '%s\x1b[0m', text, err || "");
             },
-            warn: function (text) {
+            warn: function (text, err) {
                 if(logLevelValue > 2) return;
-                console.warn('\x1b[33mWARN' + stringDate + '%s\x1b[0m', text);
+                console.warn('\x1b[33mWARN' + stringDate + '%s\x1b[0m', text, err || "");
             },
-            error: function (text) {
+            error: function (text, err) {
                 if(logLevelValue > 3) return;
-                console.error('\x1b[31mERROR' + stringDate + '%s\x1b[0m', text);
+                console.error('\x1b[31mERROR' + stringDate + '%s\x1b[0m', text, err || "");
             },
-            log: function(text){
-                console.log("LOG " + stringDate + text);
+            log: function(text, err){
+                console.log("LOG " + stringDate + text, err || "");
             }
         }
     }

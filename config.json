@@ -56,5 +56,11 @@
 	},
 	"utils":{
 		
+	},
+	"watch":{
+		"enable": true,
+		"projects": [
+			"moins-de-neuf"
+		]
 	}
 }

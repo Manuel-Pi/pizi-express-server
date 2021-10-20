@@ -11,6 +11,9 @@ const utils = require('./server/utils');
 // Override logger
 const console = require('./server/logger').getLogger("", config.logger);
 
+const initServerModules = require('./server/modules');
+const { nextTick } = require('process');
+
 /*--------------------- DATABASE ---------------------------------*/
 
 // Connect to db
@@ -43,7 +46,7 @@ const app = express();
 // Secure headers
 //app.use(helmet({
 //    contentSecurityPolicy: false,
- // }));
+// }));
 // Use body parser to parse json from request body
 app.use(require('body-parser').json());
 // Define a static server
@@ -53,13 +56,8 @@ const apisPath = path.join(__dirname, config.apiServerFolder);
 app.use('/api', express.static(apisPath));
 app.use(express.static(path.join(appsPath, 'server'))); // client server app
 
-// CUSTOM MODULES
-// Use auth for the REST API
-app.use(config.rest.url, require('./server/modules/pizi-jwt')(utils.checkAuth, config.jwt));
-// Define the REST API
-app.use(config.rest.url, require('./server/modules/pizi-rest')(config.rest));
-// Add server utils
-app.use('/utils', require('./server/modules/pizi-server-utils.js')(config.utils));
+// Register custom middleware
+utils.activateModules({app, config, console});
 
 /*--------------------- CREATE SERVER ---------------------------------*/
 
@@ -78,14 +76,32 @@ server.listen(port, () => console.info('Server started on port ' + port + ' (' +
 
 // Register apps
 const socketServer = require('socket.io')(server);
-const apps = utils.registerApps(appsPath, socketServer, config.https ? "https://localhost:" + port : "http://localhost:" + port);
-const apis = utils.registerApps(apisPath, socketServer, config.https ? "https://localhost:" + port : "http://localhost:" + port);
+const exposed = {
+    socketServer,
+    console,
+    host: config.https ? "https://localhost:" + port : "http://localhost:" + port
+}
+const apps = utils.registerApps(appsPath, exposed);
+const apis = utils.registerApps(apisPath, exposed);
+
+// Re-routing SPA apps
+const spaApps = apps.filter(app => app.spa).map(app => app.name)
+app.use("/:app/:other", function (req, resp, next) {
+    if(spaApps.includes(req.params.app) && req.params.other){
+        console.debug("SPA app redirection: " + req.params.app + "/" + req.params.other + " -> " + req.params.app)
+        const indexFile = path.join(appsPath, req.params.app, "index.html")
+        console.debug("Index file: "  + indexFile)
+        resp.sendFile(indexFile)
+    } else {
+        next()
+    }
+})
 
 /*--------------------- NOTIFY---------------------------------*/
 
 // Hide credentials from URL
 let dbUrl = process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db;
-dbUrl = dbUrl.replace(/[^:]+:\/\/([^@]+).+/, (match, p1) => dbUrl.replace(p1, "user:password"));
+dbUrl = dbUrl.replace(/[^:]+:\/\/([^@]+).*/, (match, p1) => dbUrl.replace(p1, "user:password"));
 
 // Init server state
 let serverState = {

@@ -1,5 +1,5 @@
 var mongoose = require('mongoose');
-module.exports = (socketServer, console) => {
+module.exports = ({socketServer, console}) => {
     // Get io for a specific namespace
     const io = socketServer.of('/pizi-server');
 

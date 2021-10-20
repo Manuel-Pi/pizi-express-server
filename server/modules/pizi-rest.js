@@ -4,7 +4,7 @@ let mongoose   = require('mongoose');
 
 const DEFAULT_ROLE = "anonymous";
 
-module.exports = (config) => {
+module.exports = ({config, console}) => {
     
     config = config || {restrictions: {}};
     

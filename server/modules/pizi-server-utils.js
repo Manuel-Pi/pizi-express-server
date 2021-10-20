@@ -3,7 +3,7 @@ const express = require('express');
 const fs = require('fs');
 const basePath = 'Apps/';
 
-module.exports = (config) => {
+module.exports = ({config, console}) => {
     // Get router
     let routerREST = express.Router();
     // Enter point

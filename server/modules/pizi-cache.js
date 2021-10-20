@@ -1,7 +1,7 @@
 "use strict";
 const cache = require('memory-cache');
 
-module.exports = (config) => {
+module.exports = ({config, console}) => {
 
     let expirationTime = 0;
     if(config.expirationTime.indexOf("h") !== -1){

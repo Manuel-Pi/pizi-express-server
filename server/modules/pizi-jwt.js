@@ -8,7 +8,7 @@ let BadCredential = new Error("Bad credential!");
 
 const CONNECTED_USERS = {};
 
-module.exports = (check, config) => {
+module.exports = ({config, console, check = checkAuthDefault}) => {
 	return (req, res, next) => {
 		delete req.user;
 		if(req.path === config.token.path){
@@ -84,4 +84,27 @@ module.exports = (check, config) => {
 			}
 		}
 	}
-};
+}
+
+// Default authentification function
+const checkAuthDefault = (login, password, callback) => {
+	const UserModel = require('../database/models/user');
+	try{
+		UserModel.find({"login": login},
+		function(err, models) {
+			if (err) {
+				callback(true);
+				console.debug(err);
+			} else if(models.length > 0 && models[0].get('password') === password) {
+				callback(null, {user: models[0].get('login'), role: models[0].get('role')});
+			} else if(models.length > 0){
+				callback("wrong password");
+			} else {
+				callback(true);
+			}
+		});
+	} catch(err){
+		callback(true);
+		console.error(err);
+	}  
+}
