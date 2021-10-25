@@ -58,7 +58,7 @@
 		
 	},
 	"watch":{
-		"enable": true,
+		"enable": false,
 		"projects": [
 			"moins-de-neuf"
 		]
