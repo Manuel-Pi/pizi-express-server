@@ -68,9 +68,5 @@ module.exports = {
                 console
             }).forEach(middleware => app.use(middleware))
         }
-
-        if(config.spa){
-
-        }
     }
 }

@@ -1,41 +1,38 @@
-const path = require('path');
-const express = require('express');
-const mongoose = require('mongoose');
-const helmet = require('helmet');
-const fs = require('fs');
+const path = require('path')
+const express = require('express')
+const mongoose = require('mongoose')
+const helmet = require('helmet')
+const fs = require('fs')
 
 // Get config file
-const config = require('./config.json');
+const config = require('./config.json')
 // Get utils functions
-const utils = require('./server/utils');
+const utils = require('./server/utils')
 // Override logger
-const console = require('./server/logger').getLogger("", config.logger);
-
-const initServerModules = require('./server/modules');
-const { nextTick } = require('process');
+const console = require('./server/logger').getLogger("", config.logger)
 
 /*--------------------- DATABASE ---------------------------------*/
 
 // Connect to db
-mongoose.set('useNewUrlParser', true);
-mongoose.set('useFindAndModify', false);
-mongoose.set('useCreateIndex', true);
-mongoose.set('useUnifiedTopology', true);
-mongoose.connect(process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db);
+mongoose.connect(process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db).catch(error => {
+    console.error('Database connection error!')
+    console.debug(error)
+    setServerState({db:  "error"})
+})
 const db = mongoose.connection;
 db.on('error', e => {
-    console.error('Database connection error!');
-    console.debug(e);
-    setServerState({db:  "error"});
-}).catch(() => {});
-db.once('open', () => {  
-    console.info('Database successfully connected!');
-    var admin = new mongoose.mongo.Admin(mongoose.connection.db);
-    admin.buildInfo(function (err, info) {
-        setServerState({dbVersion: info.version});
-    });
-    setServerState({db:  "connected"});
-}).catch(() => {});
+    console.error('Database connection error!')
+    console.debug(e)
+    setServerState({db:  "error"})
+})
+db.once('open', () => {
+    console.info('Database successfully connected!')
+    const admin = new mongoose.mongo.Admin(mongoose.connection.db)
+    admin.buildInfo((err, info) => {
+        setServerState({dbVersion: info.version})
+    })
+    setServerState({db:  "connected"})
+})
 
 /*--------------------- MODULES ---------------------------------*/
 
@@ -57,32 +54,32 @@ app.use('/api', express.static(apisPath))
 app.use(express.static(path.join(appsPath, 'server'))) // client server app
 
 // Register custom middleware
-utils.activateModules({app, config, console});
+utils.activateModules({app, config, console})
 
 /*--------------------- CREATE SERVER ---------------------------------*/
 
 // Get server options
-const port = process.env.PORT || config.port;
-const protocol = config.https ? require('https') : require('http');
+const port = process.env.PORT || config.port
+const protocol = config.https ? require('https') : require('http')
 const serverOptions = !config.https ? {} : {
     key: fs.readFileSync("./server/certificates/cert.key"),
     cert: fs.readFileSync("./server/certificates/cert.pem")
-};
+}
 // Create server
 const server = protocol.createServer(serverOptions, app);
-server.listen(port, () => console.info('Server started on port ' + port + ' (' + (config.https ? "https" : "http") + ')'));
+server.listen(port, () => console.info('Server started on port ' + port + ' (' + (config.https ? "https" : "http") + ')'))
 
 /*--------------------- APPS---------------------------------*/
 
 // Register apps
-const socketServer = require('socket.io')(server);
+const socketServer = require('socket.io')(server)
 const exposed = {
     socketServer,
     console,
     host: config.https ? "https://localhost:" + port : "http://localhost:" + port
 }
-const apps = utils.registerApps(appsPath, exposed);
-const apis = utils.registerApps(apisPath, exposed);
+const apps = utils.registerApps(appsPath, exposed)
+const apis = utils.registerApps(apisPath, exposed)
 
 // Re-routing SPA apps
 const spaApps = apps.filter(app => app.spa).map(app => app.name)
