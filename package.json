@@ -33,7 +33,6 @@
     "less-loader": "^10.2.0",
     "mini-css-extract-plugin": "^2.4.3",
     "nodemon": "^2.0.4",
-    "optimize-css-assets-webpack-plugin": "^5.0.3",
     "replace": "^1.2.0",
     "source-map-loader": "^3.0.0",
     "style-loader": "^3.3.1",
