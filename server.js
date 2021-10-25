@@ -97,8 +97,8 @@ app.use("/:app/:other", function (req, resp, next) {
 /*--------------------- NOTIFY---------------------------------*/
 
 // Hide credentials from URL
-let dbUrl = process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db;
-dbUrl = dbUrl.replace(/[^:]+:\/\/([^@]+).*/, (match, p1) => dbUrl.replace(p1, "user:password"));
+let dbUrl = process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db
+dbUrl = dbUrl.replace(/[^:]+:\/\/([^@]+).*/, (match, p1) => dbUrl.replace(p1, "user:password"))
 
 // Init server state
 let serverState = {
@@ -111,10 +111,10 @@ let serverState = {
     jwt: config.jwt.needToken,
     https: config.https,
     port
-};
+}
 // Update state function (notify client)
 const setServerState = (state = {}) => {
-    serverState = {... serverState, ...state};
-    socketServer.of('/pizi-server').emit("infos", serverState);
+    serverState = {... serverState, ...state}
+    socketServer.of('/pizi-server').emit("infos", serverState)
 }
-socketServer.of('/pizi-server').on('connection', socket => setServerState({apps}));
+socketServer.of('/pizi-server').on('connection', socket => setServerState({apps}))
