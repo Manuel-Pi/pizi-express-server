@@ -40,7 +40,7 @@ db.once('open', () => {
 /*--------------------- MODULES ---------------------------------*/
 
 // Get express instance
-const app = express();
+const app = express()
 // Cache
 // app.use(require('./server/modules/pizi-cache')(config.cache));
 // Secure headers
@@ -48,13 +48,13 @@ app.use(helmet({
     contentSecurityPolicy: false,
 }))
 // Use body parser to parse json from request body
-app.use(require('body-parser').json());
+app.use(express.json())
 // Define a static server
-const appsPath = path.join(__dirname, config.staticServerFolder);
-app.use(express.static(appsPath));
-const apisPath = path.join(__dirname, config.apiServerFolder);
-app.use('/api', express.static(apisPath));
-app.use(express.static(path.join(appsPath, 'server'))); // client server app
+const appsPath = path.join(__dirname, config.staticServerFolder)
+app.use(express.static(appsPath))
+const apisPath = path.join(__dirname, config.apiServerFolder)
+app.use('/api', express.static(apisPath))
+app.use(express.static(path.join(appsPath, 'server'))) // client server app
 
 // Register custom middleware
 utils.activateModules({app, config, console});
