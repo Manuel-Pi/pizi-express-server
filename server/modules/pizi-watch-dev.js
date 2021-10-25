@@ -5,7 +5,7 @@ module.exports = ({config, console}) => {
     const middlewares = []
     if(config && config.projects) config.projects.forEach(webpackConfigProject => {
         try{
-            const webpackConfigFile = require("../../../" + webpackConfigProject + "/webpack.config.js")
+            const webpackConfigFile = require("../../../" + webpackConfigProject + "/webpack.config.dev.js")
 
             // Add middleware for SPA routing if needed
             try{

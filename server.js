@@ -44,9 +44,9 @@ const app = express();
 // Cache
 // app.use(require('./server/modules/pizi-cache')(config.cache));
 // Secure headers
-//app.use(helmet({
-//    contentSecurityPolicy: false,
-// }));
+app.use(helmet({
+    contentSecurityPolicy: false,
+}))
 // Use body parser to parse json from request body
 app.use(require('body-parser').json());
 // Define a static server
