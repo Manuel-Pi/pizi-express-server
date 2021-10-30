@@ -1,81 +1,65 @@
-"use strict";
-let express = require('express');
-let mongoose   = require('mongoose');
+"use strict"
+const express = require('express')
+const utils = require('../utils/utils')
 
-const DEFAULT_ROLE = "anonymous";
+const DEFAULT_ROLE = "anonymous"
 
-module.exports = ({config, console}) => {
+/**
+ * pizi-rest module
+ * express middleware used to deliver a simple REST server
+ * @param config: the options to use
+ * @param console: the console object
+ * @returns: the express middleware
+ */
+module.exports = ({config = {restrictions: {}}, console}) => { 
+    /* ERRORS */
+    const OperationError = new Error("An error has occurred, cannot achieve the desired action!")
+    const StoreNotFoundError = new Error("The desired store do not exist!")
+    const NotAuthorizedError = new Error("You are not authorized to proceed this operation!")
     
-    config = config || {restrictions: {}};
-    
-    // Array of Mongoose models
-    mongoose.models = mongoose.models || {};
-    
-    // Create dynamic Mongoose model
-    function getMoogouseModel(name){
-        name = name.substring(0, name.length - 1);
-        let Model = mongoose.models[name];
-        if(!Model){
-            try{
-                Model = require('../database/models/' + name);
-            } catch(e){
-                console.log("No model matching: " + name);
-            }
-        }
-        
-        if(!Model){
-            Model = mongoose.model(name, new mongoose.Schema());
-            mongoose.models[name] = Model;
-        }
-        return Model;
-    }
-    
-        // Define errors:
-    let OperationError = new Error("An error has occurred, cannot achieve the desired action!");
-    let StoreNotFoundError = new Error("The desired store do not exist!");
-    let NotAuthorizedError = new Error("You are not authorized to proceed this operation!");
-    
-    // Check user right
+    // Check user right based on config
     function checkRight(req , res, type, store){
-        req = req || {user: null};
-        req.attributesBlackList = {};
-        let allowed = true;
-        const defaultRestrictions = config.restrictions["all"] || {};
-        let restriction = config.restrictions[store] || defaultRestrictions || {};
+        req = req || {user: null}
+        req.attributesBlackList = {}
+        let allowed = true
+        const defaultRestrictions = config.restrictions["default"] || {}
+        let restriction = config.restrictions[store]
+        if(restriction && restriction.attributes) restriction.attributes = {...defaultRestrictions.attributes, ...restriction.attributes}
+        restriction = {...defaultRestrictions, ...config.restrictions[store]}
         if(restriction[type] || restriction.all){
-            let roleNeeded = restriction[type] || restriction.all;
+            let roleNeeded = restriction[type] || restriction.all
             if(roleNeeded !== DEFAULT_ROLE && (!req.user || req.user.role !== roleNeeded)){
-                allowed = false;
+                allowed = false
             }
         }
 
         // Default Attributes
-        let attributes = {...defaultRestrictions.attributes, ...restriction.attributes};
-        for (let key of Object.keys(attributes)) {
-            if(!req.user || attributes[key] !== req.user.role){
-                req.attributesBlackList[key] = 0;
+        for (let key of Object.keys(restriction.attributes)) {
+            if(!req.user || restriction.attributes[key] !== req.user.role){
+                if(store === "users" && type === "put") continue // Exception for password update
+                req.attributesBlackList[key] = 0
                 delete req.body[key];
             }
         }
         
-        if(!allowed) res.status(500).json({message: NotAuthorizedError.message});;
+        if(!allowed) res.status(500).json({message: NotAuthorizedError.message})
         return allowed;
     }
     
     // Get router
-    let routerREST = express.Router();
+    let routerREST = express.Router()
     
     // Enter point
     routerREST.get('/', (req, res) => {
-        res.json({ message: config.name });
-    });
+        res.json({ message: config.name })
+    })
     
     // URL matching '/store' patern
     routerREST.route(/^\/\w*$/).post((req, res) => {
         let store = req.path.split('/')[1];
         if(checkRight(req, res, "post", store)){
             try{
-                let MongooseModel = getMoogouseModel(store);             
+                let MongooseModel = utils.getMongouseModel(store);             
                 let model = new MongooseModel();
                 for(let attribute in req.body){
                     model.set(attribute, req.body[attribute], {strict: false});
@@ -98,7 +82,7 @@ module.exports = ({config, console}) => {
         let store = req.path.split('/')[1];
         if(checkRight(req, res, "get", store)){
             try{
-                let Model = getMoogouseModel(store); 
+                let Model = utils.getMongouseModel(store); 
                 Model.find(req.query, req.attributesBlackList || {}, (err, models) => {
                     if (err) {
                         res.status(500).json({message: OperationError.message});
@@ -116,7 +100,7 @@ module.exports = ({config, console}) => {
         let store = req.path.split('/')[1];
         if(checkRight(req, res, "delete", store)){
             try{
-                let Model = getMoogouseModel(store);
+                let Model = utils.getMongouseModel(store);
                 Model.remove(req.body, (err, model) => {
                     if (err) {
                         res.status(500).json({message: OperationError.message});
@@ -130,29 +114,6 @@ module.exports = ({config, console}) => {
                 console.log(err);
             }
         }
-    });
-
-    routerREST.route('/users/:login').get((req, res) => {
-        let store = req.path.split('/')[1];
-        if(!req.user) return;
-        if(req.params.login === req.user.user){
-            try{
-                let Model = getMoogouseModel(store);
-                Model.findOne({login: req.params.login}, ["-password", "-_id"], (err, model) => {
-                    if (err) {
-                        res.status(500).json({message: OperationError.message});
-                        console.log(err);
-                    } else {
-                        res.json(model);
-                    }
-                });
-            } catch(err){
-                res.status(500).json({message: StoreNotFoundError.message});
-                console.log(err);
-            }
-        } else {
-            res.status(500).json({message: OperationError.message});
-        }
     })
     
     // URL matching '/store/id' patern
@@ -160,7 +121,7 @@ module.exports = ({config, console}) => {
         let store = req.path.split('/')[1];
         if(checkRight(req, res, "get", store)){
             try{
-                let Model = getMoogouseModel(store);
+                let Model = utils.getMongouseModel(store);
                 Model.findById(req.params.model_id, req.attributesBlackList, (err, model) => {
                     if (err) {
                         res.status(500).json({message: OperationError.message});
@@ -178,7 +139,7 @@ module.exports = ({config, console}) => {
         let store = req.path.split('/')[1];
         if(checkRight(req, res, "put", store)){
             try{
-                var Model = getMoogouseModel(store);
+                var Model = utils.getMongouseModel(store);
                 Model.findById(req.params.model_id, (err, model) => {
                     if (err) {
                         res.status(500).json({message: OperationError.message});
@@ -206,7 +167,7 @@ module.exports = ({config, console}) => {
         let store = req.path.split('/')[1];
         if(checkRight(req, res, "put", store)){
             try{
-                let Model = getMoogouseModel(store);
+                let Model = utils.getMongouseModel(store);
                 let hasAttributes = false;
                 for(let prop in req.body) {
                     if(req.body.hasOwnProperty(prop)){
@@ -222,7 +183,7 @@ module.exports = ({config, console}) => {
                         } else {
                             res.json({ message: 'Successfully deleted' });
                         }
-                    });
+                    })
                 } else {
                     Model.findById(req.params.model_id, (err, model) => {
                         if (err) {
@@ -248,6 +209,6 @@ module.exports = ({config, console}) => {
                 console.log(err);
             }
         }
-    });
-    return routerREST;
+    })
+    return routerREST
 }

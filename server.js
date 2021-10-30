@@ -7,9 +7,11 @@ const fs = require('fs')
 // Get config file
 const config = require('./config.json')
 // Get utils functions
-const utils = require('./server/utils')
-// Override logger
-const console = require('./server/logger').getLogger("", config.logger)
+const utils = require('./server/utils/utils')
+// Get server libs
+const serverLibs = require('./server/libs/custom-server-libs')
+// Override console
+const console = serverLibs.logger.getLogger()
 
 /*--------------------- DATABASE ---------------------------------*/
 
@@ -52,9 +54,8 @@ app.use(express.static(appsPath))
 const apisPath = path.join(__dirname, config.apiServerFolder)
 app.use('/api', express.static(apisPath))
 app.use(express.static(path.join(appsPath, 'server'))) // client server app
-
 // Register custom middleware
-utils.activateModules({app, config, console})
+utils.activateModules(app)
 
 /*--------------------- CREATE SERVER ---------------------------------*/
 
@@ -73,13 +74,9 @@ server.listen(port, () => console.info('Server started on port ' + port + ' (' +
 
 // Register apps
 const socketServer = require('socket.io')(server)
-const exposed = {
-    socketServer,
-    console,
-    host: config.https ? "https://localhost:" + port : "http://localhost:" + port
-}
-const apps = utils.registerApps(appsPath, exposed)
-const apis = utils.registerApps(apisPath, exposed)
+const host = config.https ? "https://localhost:" + port : "http://localhost:" + port
+const apps = utils.registerApps(appsPath, socketServer, host)
+const apis = utils.registerApps(apisPath, socketServer, host)
 
 // Re-routing SPA apps
 const spaApps = apps.filter(app => app.spa).map(app => app.name)

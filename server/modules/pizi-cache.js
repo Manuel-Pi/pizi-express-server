@@ -1,5 +1,5 @@
 "use strict";
-const cache = require('memory-cache');
+const cache = require('memory-cache')
 
 module.exports = ({config, console}) => {
 

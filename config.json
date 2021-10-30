@@ -8,8 +8,27 @@
 		"moins-de-neuf": "debug",
 		"pizi-chat": "info"
 	},
+	"users": {
+		"url": "/pizi-users"
+	},
+	"email":{
+		"url": "/pizi-email",
+		"role": "admin",
+		"printToConsole": true,
+		"auth": {
+			"type": "OAuth2",
+			"json": "../data/gmail.json"
+		}
+	},
 	"jwt": {
 		"needToken": false,
+		"urls": [
+			"/pizi-rest",
+			"/pizi-email",
+			"/pizi-users/getUser",
+			"/pizi-users/updateUser/",
+			"/pizi-users/deleteUser/"
+		],
 		"token": {
 			"path": "/token",
 			"checkPath": "/check",
@@ -25,15 +44,16 @@
 		"url": "/pizi-rest",
 		"name": "Pizi RESTFull Server",
 		"restrictions": {
-			"all": {
+			"default": {
 				"get": "anonymous",
 				"put": "admin",
 				"post": "admin",
 				"delete": "admin",
 				"attributes": {
-					"_id": "admin",
+					"_id": "nobody",
 					"__v":"admin",
-					"password": "nobody"
+					"password": "nobody",
+					"email": "admin"
 				}
 			},
 			"users": {
@@ -58,7 +78,7 @@
 		
 	},
 	"watch":{
-		"enable": false,
+		"enable": true,
 		"projects": [
 			"moins-de-neuf"
 		]
