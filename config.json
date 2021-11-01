@@ -22,21 +22,22 @@
 	},
 	"jwt": {
 		"needToken": false,
-		"urls": [
-			"/pizi-rest",
-			"/pizi-email",
-			"/pizi-users/getUser",
-			"/pizi-users/updateUser/",
-			"/pizi-users/deleteUser/"
-		],
 		"token": {
 			"path": "/token",
 			"checkPath": "/check",
 			"key": "p!z!K3y",
 			"expire": "30d",
 			"payload":{
-				"iss": "http://localhost:8087"
+				"iss": "http://pizi-server"
 			}
+		},
+		"roles": {
+			"superAdmin": {
+				"inherit": ["basic", "admin"]
+			}
+		},
+		"restrictions": {
+			"/pizi-email": ["superAdmin"]
 		}
 	},
 	"db": "mongodb://0.0.0.0/test",
@@ -57,12 +58,10 @@
 				}
 			},
 			"users": {
-				"attributes": {
-					"role": "anonymous"
-				}
+				"all": "nobody"
 			},
 			"games": {
-				"all": "admin",
+				"all": "basic",
 				"attributes": {
 					"pickStack": "admin",
 					"playedCards": "admin",
