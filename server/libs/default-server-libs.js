@@ -39,24 +39,24 @@ const getLogger = (prefix = "", options = {}) => {
         year: 'numeric', month: 'numeric', day: 'numeric',
         hour: 'numeric', minute: 'numeric', second: 'numeric',
         hour12: false
-    }).format(new Date()) + "]: "
+    }).format(new Date()) + "]:"
     
     return {
         debug: function(...args){
             if(logLevelValue > 0) return
-            console.debug('\x1b[37mDEBUG' + stringDate + '%s\x1b[0m', ...args)
+            console.debug('\x1b[37mDEBUG' + stringDate, ...args, '\x1b[0m')
         },
         info: function (...args) {
             if(logLevelValue > 1) return
-            console.info('\x1b[36mINFO' + stringDate + '%s\x1b[0m', ...args)
+            console.info('\x1b[36mINFO' + stringDate, ...args, '\x1b[0m')
         },
         warn: function (...args) {
             if(logLevelValue > 2) return
-            console.warn('\x1b[33mWARN' + stringDate + '%s\x1b[0m', ...args)
+            console.warn('\x1b[33mWARN' + stringDate, ...args, '\x1b[0m')
         },
         error: function (...args) {
             if(logLevelValue > 3) return
-            console.error('\x1b[31mERROR' + stringDate + '%s\x1b[0m', ...args)
+            console.error('\x1b[31mERROR' + stringDate, ...args, '\x1b[0m')
         },
         log: function(...args){
             console.log("LOG " + stringDate, ...args)

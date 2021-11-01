@@ -2,8 +2,6 @@
 const express = require('express')
 const utils = require('../utils/utils')
 
-const DEFAULT_ROLE = "anonymous"
-
 /**
  * pizi-rest module
  * express middleware used to deliver a simple REST server
@@ -18,196 +16,137 @@ module.exports = ({config = {restrictions: {}}, console}) => {
     const NotAuthorizedError = new Error("You are not authorized to proceed this operation!")
     
     // Check user right based on config
-    function checkRight(req , res, type, store){
-        req = req || {user: null}
+    function checkRight(req = {user: null}, res, store){
         req.attributesBlackList = {}
         let allowed = true
         const defaultRestrictions = config.restrictions["default"] || {}
         let restriction = config.restrictions[store]
         if(restriction && restriction.attributes) restriction.attributes = {...defaultRestrictions.attributes, ...restriction.attributes}
         restriction = {...defaultRestrictions, ...config.restrictions[store]}
-        if(restriction[type] || restriction.all){
-            let roleNeeded = restriction[type] || restriction.all
-            if(roleNeeded !== DEFAULT_ROLE && (!req.user || req.user.role !== roleNeeded)){
-                allowed = false
-            }
-        }
+        const roleNeeded = restriction.all || restriction[req.method.toLowerCase()]
+        if(roleNeeded && !utils.getUserRoles(req.user?.role).has(roleNeeded)) allowed = false
 
         // Default Attributes
-        for (let key of Object.keys(restriction.attributes)) {
-            if(!req.user || restriction.attributes[key] !== req.user.role){
-                if(store === "users" && type === "put") continue // Exception for password update
+        for (let key in restriction.attributes) {
+            if(!req.user || !utils.getUserRoles(req.user.role).has(restriction.attributes[key])){
                 req.attributesBlackList[key] = 0
-                delete req.body[key];
+                delete req.body[key]
             }
         }
         
-        if(!allowed) res.status(500).json({message: NotAuthorizedError.message})
-        return allowed;
+        if(!allowed) utils.throwError(NotAuthorizedError, res, {logger: console})
+        return allowed
     }
     
     // Get router
-    let routerREST = express.Router()
-    
-    // Enter point
-    routerREST.get('/', (req, res) => {
-        res.json({ message: config.name })
+    const routerREST = express.Router()
+
+    routerREST.use((req, res, next) => {
+        if(req.path === "/"){
+            res.json({ message: config.name })
+        } else {
+            req.store = req.path.split('/')[1]
+            if(checkRight(req, res, req.store)) next()
+        }
     })
     
     // URL matching '/store' patern
     routerREST.route(/^\/\w*$/).post((req, res) => {
-        let store = req.path.split('/')[1];
-        if(checkRight(req, res, "post", store)){
-            try{
-                let MongooseModel = utils.getMongouseModel(store);             
-                let model = new MongooseModel();
-                for(let attribute in req.body){
-                    model.set(attribute, req.body[attribute], {strict: false});
-                }
-                console.log(req.body);
-                model.save((err) => {
-                            if (err) {
-                                res.status(500).json({message: OperationError.message});
-                                console.log(err);
-                            } else {
-                                res.json({ message: 'Model created!'});
-                            }
-                        });
-            } catch(err){
-                res.status(500).json({message: StoreNotFoundError.message});
-                console.log(err);
-            } 
-        }
-    }).get((req, res) => {
-        let store = req.path.split('/')[1];
-        if(checkRight(req, res, "get", store)){
-            try{
-                let Model = utils.getMongouseModel(store); 
-                Model.find(req.query, req.attributesBlackList || {}, (err, models) => {
-                    if (err) {
-                        res.status(500).json({message: OperationError.message});
-                        console.log(err);
-                    } else {
-                        res.json(models);
-                    }
-                });
-            } catch(err){
-                res.status(500).json({message: StoreNotFoundError.message});
-                console.log(err);
+        try{
+            const MongooseModel = utils.getMongouseModel(req.store)           
+            const model = new MongooseModel()
+            for(let attribute in req.body){
+                model.set(attribute, req.body[attribute], {strict: false})
             }
+            model.save((err) => {
+                if(err) utils.throwError(OperationError, res, {logger: console})
+                else res.json({ message: 'Model created!'})
+            })
+        } catch(err){
+            utils.throwError(StoreNotFoundError, res, {logger: console})
+        } 
+    }).get((req, res) => {
+        try{
+            let Model = utils.getMongouseModel(req.store)
+            Model.find(req.query, req.attributesBlackList || {}, (err, models) => {
+                if(err) utils.throwError(OperationError, res, {logger: console})
+                else res.json(models)
+            })
+        } catch(err){
+            utils.throwError(StoreNotFoundError, res, {logger: console})
         }
     }).delete((req, res) => {
-        let store = req.path.split('/')[1];
-        if(checkRight(req, res, "delete", store)){
-            try{
-                let Model = utils.getMongouseModel(store);
-                Model.remove(req.body, (err, model) => {
-                    if (err) {
-                        res.status(500).json({message: OperationError.message});
-                        console.log(err);
-                    } else {
-                        res.json({ message: 'Successfully deleted' });
-                    }
-                });
-            } catch(err){
-                res.status(500).json({message: StoreNotFoundError.message});
-                console.log(err);
-            }
+        try{
+            let Model = utils.getMongouseModel(req.store)
+            Model.remove(req.body, (err, model) => {
+                if(err) utils.throwError(OperationError, res, {logger: console})
+                else res.json({ message: 'Successfully deleted' })
+            })
+        } catch(err){
+            utils.throwError(StoreNotFoundError, res, {logger: console})
         }
     })
     
     // URL matching '/store/id' patern
     routerREST.route('/*/:model_id').get((req, res) => {
-        let store = req.path.split('/')[1];
-        if(checkRight(req, res, "get", store)){
-            try{
-                let Model = utils.getMongouseModel(store);
-                Model.findById(req.params.model_id, req.attributesBlackList, (err, model) => {
-                    if (err) {
-                        res.status(500).json({message: OperationError.message});
-                        console.log(err);
-                    } else {
-                        res.json(model);
-                    }
-                });
-            } catch(err){
-                res.status(500).json({message: StoreNotFoundError.message});
-                console.log(err);
-            }
+        try{
+            let Model = utils.getMongouseModel(req.store);
+            Model.findById(req.params.model_id, req.attributesBlackList, (err, model) => {
+                if(err) utils.throwError(OperationError, res, {logger: console})
+                else res.json(model)
+            })
+        } catch(err){
+            utils.throwError(StoreNotFoundError, res, {logger: console})
         }
     }).put((req, res) => {
-        let store = req.path.split('/')[1];
-        if(checkRight(req, res, "put", store)){
-            try{
-                var Model = utils.getMongouseModel(store);
-                Model.findById(req.params.model_id, (err, model) => {
-                    if (err) {
-                        res.status(500).json({message: OperationError.message});
-                        console.log(err);
-                    } else {
-                        for(var attribute in req.body){
-                            model.set(attribute, req.body[attribute], {strict: false});
-                        }
-                        model.save( (err) => {
-                            if (err) {
-                                res.status(500).json({message: OperationError.message});
-                                console.log(err);
-                            } else {
-                                res.json({ message: 'Model updated!' });
-                            }
-                        });
+        try{
+            var Model = utils.getMongouseModel(req.store);
+            Model.findById(req.params.model_id, (err, model) => {
+                if(err) utils.throwError(OperationError, res, {logger: console})
+                else {
+                    for(var attribute in req.body){
+                        model.set(attribute, req.body[attribute], {strict: false})
                     }
-                });
-            } catch(err){
-                res.status(500).json({message: StoreNotFoundError.message});
-                console.log(err);
-            }
+                    model.save( (err) => {
+                        if(err) utils.throwError(OperationError, res, {logger: console})
+                        else res.json({ message: 'Model updated!' })
+                    })
+                }
+            })
+        } catch(err){
+            utils.throwError(StoreNotFoundError, res, {logger: console})
         }
     }).delete( (req, res) => {
-        let store = req.path.split('/')[1];
-        if(checkRight(req, res, "put", store)){
-            try{
-                let Model = utils.getMongouseModel(store);
-                let hasAttributes = false;
-                for(let prop in req.body) {
-                    if(req.body.hasOwnProperty(prop)){
-                        hasAttributes = true;
-                        break;
-                    }  
-                }
-                if(!hasAttributes){
-                    Model.remove({_id: req.params.model_id}, (err, model) => {
-                        if (err) {
-                            res.status(500).json({message: OperationError.message});
-                            console.log(err);
-                        } else {
-                            res.json({ message: 'Successfully deleted' });
-                        }
-                    })
-                } else {
-                    Model.findById(req.params.model_id, (err, model) => {
-                        if (err) {
-                            res.status(500).json({message: OperationError.message});
-                            console.log(err);
-                        } else {
-                        for(let attribute in req.body){
-                                model.set(attribute, undefined, {strict: false});
-                            }
-                            model.save( (err) => {
-                                if (err) {
-                                    res.status(500).json({message: OperationError.message});
-                                    console.log(err);
-                                } else {
-                                    res.json({ message: 'Model updated!' });
-                                }
-                            }); 
-                        }
-                    });
-                }
-            } catch(err){
-                res.status(500).json({message: StoreNotFoundError.message});
-                console.log(err);
+        try{
+            let Model = utils.getMongouseModel(req.store)
+            let hasAttributes = false
+            for(let prop in req.body) {
+                if(req.body.hasOwnProperty(prop)){
+                    hasAttributes = true
+                    break
+                }  
             }
+            if(!hasAttributes){
+                Model.remove({_id: req.params.model_id}, (err, model) => {
+                    if(err) utils.throwError(OperationError, res, {logger: console})
+                    else res.json({ message: 'Successfully deleted' })
+                })
+            } else {
+                Model.findById(req.params.model_id, (err, model) => {
+                    if (err) utils.throwError(OperationError, res, {logger: console})
+                    else {
+                        for(let attribute in req.body){
+                            model.set(attribute, undefined, {strict: false})
+                        }
+                        model.save( (err) => {
+                            if(err) utils.throwError(OperationError, res, {logger: console})
+                            else res.json({ message: 'Model updated!' })
+                        })
+                    }
+                })
+            }
+        } catch(err){
+            utils.throwError(StoreNotFoundError, res, {logger: console})
         }
     })
     return routerREST

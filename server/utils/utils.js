@@ -124,7 +124,7 @@ module.exports = {
      * @returns - the mongoose model
      */
     getMongouseModel(name){
-        name = name.substring(0, name.length - 1);
+        name = name.substring(0, name.length-1)
         let Model = mongoose.models[name]
         if(!Model){
             try{
@@ -141,6 +141,18 @@ module.exports = {
     throwError(error, res, options = {}){
         if(!res) throw error
         else res.status(options.errorCode || 500).json({message: error.message})
-        console[options.logLevel || "error"](error, options.message || "")
-    }
+        const logger = options.logger || console
+        logger[options.logLevel || "error"](error.message, options.message || "")
+    },
+
+    getUserRoles(role){
+        const roles = config.jwt.roles || []
+        const userRoles = new Set([this.DEFAULT_ROLE])
+        if(!roles[role]) return userRoles
+        userRoles.add(role)
+        if(roles[role].inherit) roles[role].inherit.forEach(r => userRoles.add(...this.getUserRoles(r)))
+        return userRoles
+    },
+
+    DEFAULT_ROLE: "anonymous"
 }

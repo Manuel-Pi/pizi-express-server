@@ -2,6 +2,7 @@
 const jwt = require('jsonwebtoken')
 const express = require('express')
 const UserModel = require('../database/models/user')
+const utils = require('../utils/utils')
 const CONNECTED_USERS = {}
 
 /* ERRORS */
@@ -22,7 +23,23 @@ module.exports = ({config, console, check = checkAuthDefault}) => {
 
 	const router = express.Router()
 
-	router.get(config.token.checkPath, (req, res, next) => {
+	const isAllowed = (req) => {
+        // Get restritions
+        const restrictions = config.restrictions
+        const restrictionPaths = new Set(Object.keys(restrictions).sort())
+		const userRoles = utils.getUserRoles(req.user?.role)
+
+        let isAllowed = true
+        for(const path of restrictionPaths){
+            if(req.path.startsWith(path)){
+                isAllowed = restrictions[path].some(allowedRole => userRoles.has(allowedRole))
+            }
+        }
+		console.debug(req.user ? req.user.user : utils.DEFAULT_ROLE, isAllowed ? "is allowed on" : "is not allowed on", req.path)
+        return isAllowed
+    }
+
+	router.get(config.token.checkPath, (req, res, next) => { // Check token
 		const auth = req.headers.authorization
 		if(auth && auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)){
 			let token = auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)[1];
@@ -49,7 +66,7 @@ module.exports = ({config, console, check = checkAuthDefault}) => {
 		} else {
 			res.status(500).json({message: BadToken.message})
 		}
-	}).get(config.token.path,(req, res, next) => {
+	}).get(config.token.path,(req, res, next) => { // Get token
 		if(req.headers.login && req.headers.password){
 			check(req.headers.login, req.headers.password, (err, user) => {
 				if(err){
@@ -73,13 +90,13 @@ module.exports = ({config, console, check = checkAuthDefault}) => {
 				}
 			});
 		} else {
-			res.status(500).json({message: NoCredential.message});
+			res.status(500).json({message: NoCredential.message})
 		}
 	})
 
-	router.use(config.urls, (req, res, next) => {
+	router.use((req, res, next) => {
 		delete req.user
-		const auth = req.headers.authorization;
+		const auth = req.headers.authorization
 		if(auth && auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)){
 			const token = auth.match(/^Bearer ((\w|-|_)+.(\w|-|_)+.(\w|-|_)+)$/)[1];
 			jwt.verify(token, config.token.key, (err, decoded) => {
@@ -99,13 +116,11 @@ module.exports = ({config, console, check = checkAuthDefault}) => {
 					})
 				}
 			})
-		} else {
-			if(config.needToken) {
-				res.status(500).json({message: NotAuthorizedError.message});
-			} else {
-				next()
-			}
-		}
+		} else next()
+	}).use((req, res, next) => {
+		if(!isAllowed(req)){
+			utils.throwError(NotAuthorizedError, res)
+		} else next()
 	})
 
 	return router
