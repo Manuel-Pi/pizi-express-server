@@ -7,7 +7,14 @@ const console = serverLibs.logger.getLogger()
 
 const email = (() => {
     try{
-        const auth = require("../../" + config.email.auth.json)
+
+        const auth = process.env.EMAIL_USER ? {
+                emailUser: process.env.EMAIL_USER,
+                emailClientID: process.env.EMAIL_CLIENT_ID,
+                emailClientSecret: process.env.EMAIL_CLIENT_SECRET,
+                emailRefreshToken: process.env.EMAIL_REFRESH_TOKEN
+        } : require("../../" + config.email.auth.json)
+        
         const OAuth2Client = new google.auth.OAuth2(auth.emailClientID, auth.emailClientSecret)
         OAuth2Client.setCredentials({ refresh_token: auth.emailRefreshToken })
         return nodemailer.createTransport({
