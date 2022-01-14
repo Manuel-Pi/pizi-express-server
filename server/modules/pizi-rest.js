@@ -15,38 +15,30 @@ module.exports = ({config = {restrictions: {}}, console}) => {
     const StoreNotFoundError = new Error("The desired store do not exist!")
     const NotAuthorizedError = new Error("You are not authorized to proceed this operation!")
     
-    // Check user right based on config
-    function checkRight(req = {user: null}, res, store){
-        req.attributesBlackList = {}
-        let allowed = true
-        const defaultRestrictions = config.restrictions["default"] || {}
-        let restriction = config.restrictions[store]
-        if(restriction && restriction.attributes) restriction.attributes = {...defaultRestrictions.attributes, ...restriction.attributes}
-        restriction = {...defaultRestrictions, ...config.restrictions[store]}
-        const roleNeeded = restriction.all || restriction[req.method.toLowerCase()]
-        if(roleNeeded && !utils.getUserRoles(req.user?.role).has(roleNeeded)) allowed = false
-
-        // Default Attributes
-        for (let key in restriction.attributes) {
-            if(!req.user || !utils.getUserRoles(req.user.role).has(restriction.attributes[key])){
-                req.attributesBlackList[key] = 0
-                delete req.body[key]
-            }
-        }
-        
-        if(!allowed) utils.throwError(NotAuthorizedError, res, {logger: console})
-        return allowed
-    }
-    
     // Get router
-    const routerREST = express.Router()
-
-    routerREST.use((req, res, next) => {
-        if(req.path === "/"){
-            res.json({ message: config.name })
-        } else {
+    const routerREST = express.Router().use((req, res, next) => {
+        if(req.path === "/") res.json({ message: config.name })
+        else {
+            // Check user right based on config
             req.store = req.path.split('/')[1]
-            if(checkRight(req, res, req.store)) next()
+            req.attributesBlackList = {}
+            let allowed = true
+            const defaultRestrictions = config.restrictions["default"] || {}
+            let restriction = config.restrictions[req.store]
+            if(restriction && restriction.attributes) restriction.attributes = {...defaultRestrictions.attributes, ...restriction.attributes}
+            restriction = {...defaultRestrictions, ...config.restrictions[req.store]}
+            const roleNeeded = restriction.all || restriction[req.method.toLowerCase()]
+            if(roleNeeded && !utils.getUserRoles(req.user?.role).has(roleNeeded)) allowed = false
+
+            // Default Attributes
+            for (let key in restriction.attributes) {
+                if(!req.user || !utils.getUserRoles(req.user.role).has(restriction.attributes[key])){
+                    req.attributesBlackList[key] = 0
+                    delete req.body[key]
+                }
+            }
+            
+            allowed ? next() : utils.throwError(NotAuthorizedError, res, {logger: console})
         }
     })
     

@@ -7,7 +7,7 @@ const console = serverLibs.logger.getLogger()
 
 const email = (() => {
     try{
-        const auth = require("../../" + "../data/gmail.json")
+        const auth = require("../../" + config.email.auth.json)
         const OAuth2Client = new google.auth.OAuth2(auth.emailClientID, auth.emailClientSecret)
         OAuth2Client.setCredentials({ refresh_token: auth.emailRefreshToken })
         return nodemailer.createTransport({
@@ -18,7 +18,9 @@ const email = (() => {
                                                 clientId: auth.emailClientID,
                                                 clientSecret: auth.emailClientSecret,
                                                 refreshToken: auth.emailRefreshToken,
-                                                accessToken: OAuth2Client.getAccessToken()
+                                                accessToken: OAuth2Client.getAccessToken().catch(error => {
+                                                    console.error("Cannot get auth for email service:", error.message)
+                                                })
                                             }
                                         })
     } catch(err){

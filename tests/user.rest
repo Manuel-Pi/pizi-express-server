@@ -1,0 +1,77 @@
+### Variables
+@login = test
+@password = 12345678
+
+### Get token
+# @name token
+GET http://localhost:8087/token HTTP/1.1
+content-type: application/json
+login: {{login}}
+password: {{password}}
+
+### Get User
+GET http://localhost:8087/pizi-users/getUser/{{login}} HTTP/1.1
+content-type: application/json
+Authorization: Bearer {{token.response.body.jwt}}
+
+{
+    "login": "test",
+    "checkCode": "947279"
+}
+
+### Create User
+POST http://localhost:8087/pizi-users/createUser HTTP/1.1
+content-type: application/json
+
+{
+    "login": "{{login}}",
+    "password": "{{password}}",
+    "email": "test@testtest.ca"
+}
+
+### Confirm code
+POST http://localhost:8087/pizi-users/createUser HTTP/1.1
+content-type: application/json
+Authorization: Bearer {{token.response.body.jwt}}
+
+{
+    "login": "test",
+    "checkCode": "updateUser"
+}
+
+### Update user
+PUT http://localhost:8087/pizi-users/updateUser/test HTTP/1.1
+content-type: application/json
+Authorization: Bearer {{token.response.body.jwt}}
+
+{
+    "email": "test"
+}
+
+### Confirm code
+PUT http://localhost:8087/pizi-users/updateUser/test HTTP/1.1
+content-type: application/json
+Authorization: Bearer {{token.response.body.jwt}}
+
+{
+    "checkCode": "351053"
+}
+
+### Reset password
+POST http://localhost:8087/pizi-users/reset-password HTTP/1.1
+content-type: application/json
+
+{
+    "email": "test@testtest.ca"
+}
+
+### Confirm code
+POST http://localhost:8087/pizi-users/reset-password HTTP/1.1
+content-type: application/json
+
+{
+    "password": "12345678",
+    "checkPassword": "12345678",
+    "checkCode": "842617",
+    "urlCode": "336144"
+} 

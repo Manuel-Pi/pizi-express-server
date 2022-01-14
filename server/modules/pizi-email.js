@@ -6,11 +6,10 @@ const NotAuthorizedError = new Error("You are not authorized to proceed this ope
 const EmailError = new Error("Cannot sent email!")
 
 /**
- * pizi-jwt module
- * express middleware used to deal with Json Web Token
+ * pizi-email module
+ * express middleware used to send email
  * @param config: the options to use
  * @param console: the console object
- * @param check: the function used to check if user login is valid
  * @returns: the express middleware
  */
 module.exports = ({config, console, serverLibs = {}}) => express.Router().post('/sendEmail', (req, res) => {

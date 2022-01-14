@@ -1,6 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const mongoose   = require('mongoose')
+const bcrypt = require('bcrypt')
 // Get config file
 const config = require('../../config.json')
 // Get server libs
@@ -12,6 +13,7 @@ const console = serverLibs.logger.getLogger()
 const MODULES_FOLDER = "../modules/"
 // Array of Mongoose models
 mongoose.models = mongoose.models || {}
+const saltRounds = 10
 
 module.exports = {
     /**
@@ -25,8 +27,8 @@ module.exports = {
         // Get Apps
         const apps = fs.readdirSync(appsPath, { withFileTypes: true }).filter(dirent => {
             if(!dirent.isDirectory()) return false;
-            if(fs.existsSync(path.join(appsPath, dirent.name, "server", "server.json")) && dirent.name !== "server") return true
-            dirent.name !== "server" && console.warn("Socket App: No server.json file found for: " + dirent.name)
+            if(fs.existsSync(path.join(appsPath, dirent.name, "server", "server.json"))) return true
+            console.warn("Socket App: No server.json file found for: " + dirent.name)
             return false
         }).map(dirent => {
             const json = require(path.join(appsPath, dirent.name, "server", "server.json"))
@@ -39,7 +41,7 @@ module.exports = {
                 console.info("Socket App: " + app.name + " detected, trying to install...")
                 if(app.type === "socket") require(app.entry)({
                     socketServer,
-                    console: serverLibs.logger.getLogger(app.name),
+                    console: serverLibs.logger.getLogger(app.name, {type: 'app'}),
                     host
                 })
                 console.info("Socket App: " + app.name + " successfully installed!")
@@ -98,7 +100,17 @@ module.exports = {
         }
 
         // Add server utils module
-        if(config.utils){
+        if(config.webdav && config.webdav.enabled !== false){
+            server.use(require(MODULES_FOLDER + 'pizi-webdav')({
+                config: config.webdav,
+                serverLibs,
+                console: serverLibs.logger.getLogger('pizi-webdav')
+            }))
+            console.info("Module " + 'pizi-webdav' + " activated")
+        }
+
+        // Add server utils module
+        if(config.utils && config.utils.enabled !== false){
             server.use('/utils', require(MODULES_FOLDER + 'pizi-server-utils')({
                 config: config.utils,
                 serverLibs,
@@ -108,7 +120,7 @@ module.exports = {
         }
 
         // Watch dev apps
-        if(process.env.NODE_ENV !== 'production' && config.watch && config.watch.enable){
+        if(process.env.NODE_ENV !== 'production' && config.watch && config.watch.enabled !== false){
             console.info("Module " + 'pizi-server-watch' + " activated")
             require(MODULES_FOLDER + 'pizi-watch-dev')({
                 config: config.watch, 
@@ -124,7 +136,7 @@ module.exports = {
      * @returns - the mongoose model
      */
     getMongouseModel(name){
-        name = name.substring(0, name.length-1)
+        name = name.slice(-1) === "s" ? name.substring(0, name.length-1) : name
         let Model = mongoose.models[name]
         if(!Model){
             try{
@@ -147,11 +159,18 @@ module.exports = {
 
     getUserRoles(role){
         const roles = config.jwt.roles || []
-        const userRoles = new Set([this.DEFAULT_ROLE])
+        const userRoles = new Set([this.DEFAULT_ROLE, role])
         if(!roles[role]) return userRoles
-        userRoles.add(role)
-        if(roles[role].inherit) roles[role].inherit.forEach(r => userRoles.add(...this.getUserRoles(r)))
+        if(roles[role].inherit) roles[role].inherit.forEach(r => this.getUserRoles(r).forEach( ur => userRoles.add(ur)))
         return userRoles
+    },
+
+    compareEncrypted(password, encrypted){
+        return bcrypt.compareSync(password, encrypted)
+    },
+
+    encrypt(password){
+        return bcrypt.hashSync(password, saltRounds)
     },
 
     DEFAULT_ROLE: "anonymous"

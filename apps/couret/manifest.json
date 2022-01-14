@@ -1,0 +1,26 @@
+{
+    "short_name": "Couret",
+    "name": "Couret",
+    "description": "no description",
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "160x160",
+            "type": "image/png"
+        }
+    ],
+    "start_url": "./index.html",
+    "display": "standalone",
+    "orientation": "portrait",
+    "theme_color": "#B25E18",
+    "background_color": "#222",
+    "default_locale": "fr",
+    "permissions": {
+        "audio-capture" : {
+            "description" : "Audio capture"
+        },
+        "speech-recognition" : {
+            "description" : "Speech recognition"
+        }
+    }
+}

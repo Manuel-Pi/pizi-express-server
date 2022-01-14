@@ -1,0 +1,25 @@
+{
+    "activate": true,
+    "console": "debug",
+    "loggers":{
+        "server": {
+            "level": "debug",
+            "enabled": true,
+            "file": "server.log"
+        },
+        "moins-de-neuf":  {
+            "level": "debug",
+            "file": "app/moins-de-neuf.log"
+        },
+        "pizi-chat": {
+            "console": false,
+            "level": "debug",
+            "file": "app/pizi-chat.log"
+        },
+        "app": {
+            "console": false,
+            "level": "debug",
+            "file": "app/server-app.log"
+        }
+    }
+}

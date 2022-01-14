@@ -1,12 +1,31 @@
 {
 	"port": 8087,
 	"https": false,
-	"staticServerFolder": "apps",
-	"apiServerFolder": "apis",
-	"logger":{
-		"server": "info",
-		"moins-de-neuf": "debug",
-		"pizi-chat": "info"
+	"appsPath": "./apps",
+	"apisPath": "./apis",
+	"log":{
+		"console": "debug",
+		"loggers":{
+			"server": {
+				"level": "debug",
+				"enabled": true,
+				"filename": "server.log"
+			},
+			"moins-de-neuf":  {
+				"level": "debug",
+				"filename": "moins-de-neuf.log"
+			},
+			"pizi-chat": {
+				"console": false,
+				"level": "debug",
+				"filename": "pizi-chat.log"
+			},
+			"app": {
+				"console": false,
+				"level": "debug",
+				"filename": "server-app.log"
+			}
+		}
 	},
 	"users": {
 		"url": "/pizi-users"
@@ -21,7 +40,6 @@
 		}
 	},
 	"jwt": {
-		"needToken": false,
 		"token": {
 			"path": "/token",
 			"checkPath": "/check",
@@ -51,17 +69,16 @@
 				"post": "admin",
 				"delete": "admin",
 				"attributes": {
-					"_id": "nobody",
+					"_id": "admin",
 					"__v":"admin",
 					"password": "nobody",
 					"email": "admin"
 				}
 			},
 			"users": {
-				"all": "nobody"
+				"get": "basic"
 			},
 			"games": {
-				"all": "basic",
 				"attributes": {
 					"pickStack": "admin",
 					"playedCards": "admin",
@@ -74,12 +91,17 @@
 		"expirationTime": "1h"
 	},
 	"utils":{
-		
+		"enabled": false
 	},
 	"watch":{
-		"enable": true,
+		"enabled": true,
 		"projects": [
 			"moins-de-neuf"
 		]
+	},
+	"webdav":{
+		"enabled": false,
+		"folderPath": "/webdav",
+		"url": "/pizi-webdav"
 	}
 }

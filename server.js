@@ -16,7 +16,8 @@ const console = serverLibs.logger.getLogger()
 /*--------------------- DATABASE ---------------------------------*/
 
 // Connect to db
-mongoose.connect(process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db).catch(error => {
+const dbUrl = process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db
+mongoose.connect(dbUrl).catch(error => {
     console.error('Database connection error!')
     console.debug(error)
     setServerState({db:  "error"})
@@ -43,17 +44,16 @@ const app = express()
 // Cache
 // app.use(require('./server/modules/pizi-cache')(config.cache));
 // Secure headers
-app.use(helmet({
-    contentSecurityPolicy: false,
-}))
+app.use(helmet({contentSecurityPolicy: false}))
 // Use body parser to parse json from request body
 app.use(express.json())
 // Define a static server
-const appsPath = path.join(__dirname, config.staticServerFolder)
+const appsPath = path.join(__dirname, config.appsPath)
 app.use(express.static(appsPath))
-const apisPath = path.join(__dirname, config.apiServerFolder)
+const apisPath = path.join(__dirname, config.apisPath)
 app.use('/api', express.static(apisPath))
-app.use(express.static(path.join(appsPath, 'server'))) // client server app
+// server app
+app.get('/', (req, res) => res.redirect('/server'))
 // Register custom middleware
 utils.activateModules(app)
 
@@ -74,39 +74,45 @@ server.listen(port, () => console.info('Server started on port ' + port + ' (' +
 
 // Register apps
 const socketServer = require('socket.io')(server)
-const host = config.https ? "https://localhost:" + port : "http://localhost:" + port
+const host = (config.https ? "https": "http") + "//localhost:" + port 
 const apps = utils.registerApps(appsPath, socketServer, host)
 const apis = utils.registerApps(apisPath, socketServer, host)
 
 // Re-routing SPA apps
 const spaApps = apps.filter(app => app.spa).map(app => app.name)
-app.use("/:app/:other", function (req, resp, next) {
+app.use("/:app/:other*", (req, resp, next) => {
     if(spaApps.includes(req.params.app) && req.params.other){
         console.debug("SPA app redirection: " + req.params.app + "/" + req.params.other + " -> " + req.params.app)
-        const indexFile = path.join(appsPath, req.params.app, "index.html")
+        const url = path.parse(req.originalUrl)
+        const indexFile = url.ext ? path.join(appsPath, req.params.app, url.base) : path.join(appsPath, req.params.app, "index.html")
         console.debug("Index file: "  + indexFile)
         resp.sendFile(indexFile)
-    } else {
-        next()
-    }
+    } else next()
 })
 
 /*--------------------- NOTIFY---------------------------------*/
 
-// Hide credentials from URL
-let dbUrl = process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db
-dbUrl = dbUrl.replace(/[^:]+:\/\/([^@]+).*/, (match, p1) => dbUrl.replace(p1, "user:password"))
-
 // Init server state
 let serverState = {
+    server:{
+        port,
+        https: config.https,
+        appsPath: config.appsPath,
+        apisPath: config.apisPath
+    },
+    database:{
+        url: dbUrl.replace(/[^:]+:\/\/([^@]+).*/, (match, p1) => dbUrl.replace(p1, "user:password"))
+    },
     db: "connecting...",
-    dbUrl: dbUrl,
+    dbUrl: dbUrl.replace(/[^:]+:\/\/([^@]+).*/, (match, p1) => dbUrl.replace(p1, "user:password")),
     tokenUrl: config.jwt.token.path,
     tokenExpire: config.jwt.token.expire,
-    logger: config.logger,
+    log: config.log,
     rest: config.rest,
-    jwt: config.jwt.needToken,
+    jwt: !!Object.keys(config.jwt.restrictions).length,
     https: config.https,
+    webdav: config.webdav,
+    users: config.users,
     port
 }
 // Update state function (notify client)
