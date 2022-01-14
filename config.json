@@ -33,7 +33,7 @@
 	"email":{
 		"url": "/pizi-email",
 		"role": "admin",
-		"printToConsole": true,
+		"printToConsole": false,
 		"auth": {
 			"type": "OAuth2",
 			"json": "../data/gmail.json"
