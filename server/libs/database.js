@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 // Connect to db
-const dbUrl = process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db
+const dbUrl = process.env.MONGODB_URI_ATLAS_MDN || process.env.MONGODB_URI_ATLAS || process.env.MONGODB_URI || config.db
 mongoose.connect(dbUrl).catch(error => {
     console.error('Database connection error!')
     console.debug(error)
