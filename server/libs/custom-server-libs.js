@@ -12,7 +12,8 @@ const email = (() => {
                 emailUser: process.env.EMAIL_USER,
                 emailClientID: process.env.EMAIL_CLIENT_ID,
                 emailClientSecret: process.env.EMAIL_CLIENT_SECRET,
-                emailRefreshToken: process.env.EMAIL_REFRESH_TOKEN
+                emailRefreshToken: process.env.EMAIL_REFRESH_TOKEN,
+                emailService: process.env.EMAIL_SERVICE
         } : require("../../" + config.email.auth.json)
         
         const OAuth2Client = new google.auth.OAuth2(auth.emailClientID, auth.emailClientSecret)
