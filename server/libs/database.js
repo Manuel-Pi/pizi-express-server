@@ -7,7 +7,7 @@ mongoose.connect(dbUrl).catch(error => {
     console.debug(error)
     setServerState({db:  "error"})
 })
-const db = mongoose.connection;
+const db = mongoose.connection
 db.on('error', e => {
     console.error('Database connection error!')
     console.debug(e)

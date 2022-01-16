@@ -1,1 +1,573 @@
-const CardManager=require("./pizi-moins-de-neuf-gameManager.js"),CardGame=require("./pizi-card-game"),mongoose=require("mongoose"),ioClient=require("socket.io-client"),PlayerModel=require("./database/models/player");module.exports=function({socketServer:e,console:a,host:r}){const n=e.of("/pizi-moins-de-neuf"),t=ioClient(r+"/pizi-chat/moinsdeneuf");let l={},i={},o={};function d(e){let a=i[e.game],r=CardManager.updatePlayer(l[e.player],a);return r?[a,r]:[]}function s(e,r){r&&PlayerModel.find({user:r},((n,t)=>{n?a.error(JSON.stringify(n)):(l[r]={id:e?e.id:null,name:r,isDBUser:t.length>0},e&&(e.player=r))}))}function m(e,r){if(!r)return;s(e,r),a.info("Connection: "+r);let t={game:null,hand:null};Object.keys(i).forEach((n=>{let o=i[n];o.players.forEach((n=>{n.name===r&&(e.game=o.name,e.join(o.name),CardManager.updatePlayer(l[e.player],o),CardManager.saveGame(o),t.game=o,t.hand=n.hand,a.info(r+" successfully retrieved game!"))}))})),e.emit("setGames",CardManager.getPublicGames(i)),n.emit("setPlayers",CardManager.getPublicPlayers(l,i)),t.game&&(e.emit("gameInfo",CardManager.getPublicGameInfo(t.game)),e.emit("setHand",t.hand),u(t.game,e)),g(r)}function g(e){o[e]&&(clearTimeout(o[e]),delete o[e],a.info(e+" removed from timeouts!"))}mongoose.connection.once("open",(()=>{CardManager.getGames((e=>{i=e,Object.values(i).forEach((e=>{t.emit("addRoom",{id:e.name,name:"[game] "+e.name,private:!0,allowedUsers:e.players.filter((e=>!e.bot)).map((e=>e.name))})}))})),CardManager.getDBPlayers((e=>Object.keys(e).forEach((e=>s(null,e)))))})),n.on("connection",(function(e){a.debug("connection of "+e.id),e.on("login",((a,r)=>m(e,a))),e.on("reconnectUser",((a,r)=>m(e,a))),e.on("disconnect",(function(r){a.info(e.player+" disconnected because "+r);let[t,s]=d(e);s&&("Infini"===t.conf.playerKickTimeout||o[s.name]||(o[s.name]=setTimeout((()=>{CardManager.kickPlayer(s,t,i),CardManager.saveGame(t),n.to(t.name).emit("gameInfo",CardManager.getPublicGameInfo(t)),n.emit("setGames",CardManager.getPublicGames(i)),n.emit("setPlayers",CardManager.getPublicPlayers(l,i)),e.leave(t.name)}),CardManager.valueToMillisecond(t.conf.playerKickTimeout),this)))})),e.on("join",(r=>{let o=i[r],d=l[e.player];const s=o.players.length+(o.spectators?o.spectators.length:0);if(!o||!d||s>7||s>=o.conf.maxPlayer)return;e.game&&i[e.game]&&CardManager.updatePlayer(d,i[e.game])&&CardManager.kickPlayer(CardManager.updatePlayer(d,i[e.game]),i[e.game],i),e.game=r,o.spectators=o.spectators||[],o.action?CardManager.addSpectator(d,o):CardManager.addPlayer(d,o),o.action&&u(o,e),e.join(r),CardManager.saveGame(o),g(d.name),t.emit("updateRoom",{id:o.name,allowedUsers:[...o.players.filter((e=>!e.bot)).map((e=>e.name))]});let m=o.players.length;for(;m--;)if(!o.players[m].bot&&!n.sockets.get(o.players[m].id))return a.info("Clean player "+o.players[m].name),void CardManager.kickPlayer(o.players[m],i[e.game],i);n.to(o.name).emit("gameInfo",CardManager.getPublicGameInfo(o)),n.emit("setGames",CardManager.getPublicGames(i)),n.emit("setPlayers",CardManager.getPublicPlayers(l,i))})),e.on("quit",(r=>{const t=l[e.player];if(!t)return;let[o,s]=d(e);if(o&&(CardManager.kickPlayer(s,o,i),e.leave(o.name),e.broadcast.to(o.name).emit("gameInfo",CardManager.getPublicGameInfo(o)),e.emit("gameInfo",null),CardManager.saveGame(o),n.emit("setGames",CardManager.getPublicGames(i))),r){e.disconnect();const r=delete l[t.name];a.log("Remove user from array = "+r)}n.emit("setPlayers",CardManager.getPublicPlayers(l,i))})),e.on("createGame",(r=>{if(!r)return;const l=Object.keys(i).length;l>10||(CardManager.saveGame(CardManager.createGame(i,r)),Object.keys(i).length>l&&(n.emit("setGames",CardManager.getPublicGames(i)),a.info("Game created: "+r.name),e.emit("gameCreated")),t.emit("addRoom",{id:r.name,name:"[game] "+r.name,private:!0}))})),t.on("roomAdded",(e=>{e.id.includes("[game]")})),e.on("removeGame",(e=>{let r=e&&i[e];const t=r.conf.bots||0;!e||!r||r.players.length-t>0||(CardManager.removeGame(i[e]),delete i[e],n.emit("setGames",CardManager.getPublicGames(i)),a.info("Game removed: "+e))})),e.on("isReady",(a=>{let[r,t]=d(e);if(!t)return;t=CardManager.updatePlayer({...t,ready:!t.ready},r);let l=0,o=!0;r.players.forEach((e=>{e.ready&&l++,o=o&&e.ready})),g(t.name),o&&r.conf.minPlayer<=l&&(CardManager.startGame(r),e.emit("setGames",CardManager.getPublicGames(i)),r.players.forEach((e=>n.sockets.get(e.id)&&n.sockets.get(e.id).emit("setHand",e.hand))),u(r,e)),CardManager.saveGame(r),n.to(r.name).emit("gameInfo",CardManager.getPublicGameInfo(r,!1,!0))})),e.on("selectPick",(r=>{let[n,t]=d(e);if(!t)return;if(e.player!==n.currentPlayer||"pick"!==n.action)return;if(t=CardManager.updatePlayer(t,n),t.hand.length>6)return;let l=null;r&&r[0]&&"0"===r[0].value&&"heart"===r[0].color&&(l=r[0]);let i=[...n.playedCards[n.playedCards.length-2]];a.debug("Last played "+JSON.stringify(i)),!l&&r&&r.length&&CardManager.contains(r[0],i)&&(l=r[0],i=i.filter((e=>e.value!==l.value||e.color!==l.color)),a.debug("Last played filtered"+JSON.stringify(i))),CardManager.saveGame(n),a.debug(t.name+" select pick "+JSON.stringify(l)),e.broadcast.to(n.name).emit("selectedPick",l)})),e.on("pick",(r=>{let t,[l,i]=d(e);if(!i)return;if(e.player!==l.currentPlayer||"pick"!==l.action)return;if(i.hand.length>6)return;let o=l.playedCards[l.playedCards.length-2];a.debug("Last played "+JSON.stringify(o)),r&&r.length&&CardManager.contains(r[0],o)?(t=r[0],o=o.filter((e=>e.value!==t.value||e.color!==t.color)),a.debug("Last played filtered"+JSON.stringify(o))):r||(t=l.pickStack.splice(0,1)[0]),t?(i.hand=[...i.hand,t],l.pickStack=l.pickStack.concat(o),a.debug(i.name+" pick "+JSON.stringify(t)),CardManager.updatePlayer(i,l),CardManager.nextAction(l),g(i.name),l.quickPlay=!!CardManager.quickPlay(i,[t],l),CardManager.saveGame(l),e.emit("setHand",i.hand),n.to(l.name).emit("gameInfo",CardManager.getPublicGameInfo(l,!1,!0)),u(l,e)):a.error("Not card matching pick!")})),e.on("play",(r=>{let[t,l]=d(e);if(!l||"play"!==t.action)return;a.debug(e.player+" wants to play "+JSON.stringify(r));var i=[...r];const o=CardManager.quickPlay(l,i,t);if("bash"===o&&n.to(t.name).emit("bash",l.name),e.player===t.currentPlayer||o)if(CardManager.checkPlayedCards(i))if(g(l.name),l.hand=l.hand.filter((e=>{let a=null;for(let n=0;n<r.length;n++)if(r[n].value===e.value&&r[n].color===e.color){a=n;break}return null!==a&&r.length&&r.splice(a,1),null===a})),r.length)a.error("Cards are not matching what server excpect! "+JSON.stringify(r));else{if("quick"===o){CardManager.updatePlayer(l,t);let e=t.playedCards[t.playedCards.length-1];t.playedCards[t.playedCards.length-1]=e.concat(i),n.to(t.name).emit("quickPlayed",l.name),t.players.filter((e=>e.name===t.currentPlayer))[0].stats.quickplay.taken++,l.stats.quickplay.done++}else CardManager.updatePlayer(l,t),CardManager.nextAction(t),t.playedCards.push(i);t.quickPlay=!1,e.emit("setHand",l.hand),CardManager.saveGame(t),n.to(t.name).emit("gameInfo",CardManager.getPublicGameInfo(t,!1,!0)),a.debug(l.name+" played "+JSON.stringify(i))}else n.to(t.name).emit("notAllowed",l.name)})),e.on("moinsDeNeuf",(r=>{let[t,l]=d(e);if(!l||"play"!==t.action||e.player!==t.currentPlayer)return;a.debug(l.name+" call for 'moins de neuf' with "+JSON.stringify(l.hand));const i=CardManager.endRound(t,l.name);CardManager.saveGame(t,!0),a.debug("Scores: "+JSON.stringify(i)),i.winners.names.length&&(n.to(t.name).emit("roundEnd",i),n.to(t.name).emit("gameInfo",CardManager.getPublicGameInfo(t,!0,!0)))})),e.on("refresh",(r=>{let[n,t]=d(e);if(!t)return e.emit("setGames",CardManager.getPublicGames(i)),void e.emit("setPlayers",CardManager.getPublicPlayers(l,i));a.info(t.name+" call for refresh. "),e.emit("gameInfo",CardManager.getPublicGameInfo(n)),e.emit("setHand",t.hand)}))}));let c=!1;function u(e,r){if(c||e.endGame)return;if(e.spectators=e.spectators||[],e.players.length+e.spectators.length<=e.conf.bots)return;let t,l=!1;if(e.players.forEach((a=>{t||a.name!==e.currentPlayer?!l&&a.hand.length<4&&(l=!0):t=a})),t&&t.bot)switch(c=!0,a.debug(t.name+" hand: "+JSON.stringify(t.hand)),e.action){case"pick":let i=null;const o=e.playedCards[e.playedCards.length-2];let d=o.filter(((e,a)=>0===a||a===o.length-1));const s=d.filter((e=>0!==t.hand.filter((a=>CardGame.getValue(a)===CardGame.getValue(e))).length));s.sort(((e,a)=>CardGame.getValue(e)-CardGame.getValue(a))),s.length&&(i=s.splice(0,1)[0]),i||(d.sort(((e,a)=>CardGame.getValue(a)-CardGame.getValue(e))),CardGame.getValue(d[0])<3&&(i=d.splice(0,1)[0]));let m=i;return i||(i=i||e.pickStack.splice(0,1)[0],e.pickStack=e.pickStack.concat(o),m={color:"heart",value:"0"}),t.hand.push(i),a.debug(t.name+" is picking: "+JSON.stringify(i)),void setTimeout((()=>{CardManager.updatePlayer(t),n.to(e.name).emit("selectedPick",m),setTimeout((()=>{CardManager.nextAction(e),n.to(e.name).emit("gameInfo",CardManager.getPublicGameInfo(e,!1,!0)),c=!1,u(e,r)}),800)}),2e3);case"play":let g=[];const f=[...t.hand].sort(((e,a)=>CardGame.getValue(a)-CardGame.getValue(e)));if(f.reduce(((e,a)=>e+CardGame.getValue(a)),0)<10)return void setTimeout((()=>{const r=CardManager.endRound(e,t.name);CardManager.saveGame(e,!0),a.debug("Scores: "+JSON.stringify(r)),c=!1,r.winners.names.length&&(n.to(e.name).emit("roundEnd",r),n.to(e.name).emit("gameInfo",CardManager.getPublicGameInfo(e,!0,!0)))}),1e3);const y=e.playedCards[e.playedCards.length-1].map((e=>CardGame.getValue(e))),p=f.filter((e=>"joker"===e.color)),C={};for(let e=0;e<f.length-1;e++){const a=f[e],r=f[e+1];CardGame.getValue(a)===CardGame.getValue(r)&&(C[CardGame.getValue(a)]?C[CardGame.getValue(a)]++:C[CardGame.getValue(a)]=1)}let h=0;if(Object.keys(C).forEach((e=>{const a=parseInt(e);a>h&&(h=a)})),h&&!y.includes(h)&&(g=f.filter((e=>CardGame.getValue(e)===h)),g.length&&p.length))for(;p.length;)g.splice(1,0,p.shift());g.length||f.forEach((e=>{if(!g.length)if(y.includes(CardGame.getValue(e))){if(l&&p.length)for(;p.length;)g.push(p.shift())}else g.push(e)}));const M=[...g];return t.hand=t.hand.filter((e=>{let a=null;for(let r=0;r<g.length;r++)if(g[r].value===e.value&&g[r].color===e.color){a=r;break}return null!==a&&g.length&&g.splice(a,1),null===a})),a.debug(t.name+" is playing: "+JSON.stringify(M)),void setTimeout((()=>{CardManager.updatePlayer(t),e.playedCards.push(M),CardManager.nextAction(e),n.to(e.name).emit("gameInfo",CardManager.getPublicGameInfo(e,!1,!0)),c=!1,u(e,r)}),2e3)}}};
+const CardManager = require('./pizi-moins-de-neuf-gameManager.js');
+const CardGame = require('./pizi-card-game');
+const mongoose = require('mongoose');
+const ioClient = require('socket.io-client');
+const UserModel = mongoose.model("User");
+
+module.exports = function({socketServer, console, host}){
+    // Get io for a specific namespace
+    const io = socketServer.of('/pizi-moins-de-neuf');
+    const ioClientChat = ioClient(host + '/pizi-chat/moinsdeneuf');
+
+    // Init state
+    let PLAYERS = {}
+    let GAMES = {}
+    let KICKABLE_PLAYERS = {}
+
+    // Init game from DB
+    mongoose.connection.once('open', () => {
+        CardManager.getGames( games => {
+            GAMES = games;
+            Object.values(GAMES).forEach(game => {
+                ioClientChat.emit("addRoom", {
+                    id: game.name,
+                    name: "[game] " + game.name,
+                    private: true,
+                    allowedUsers: game.players.filter(player => !player.bot).map(player => player.name)
+                })
+            })
+        })
+        CardManager.getDBPlayers(players => Object.keys(players).forEach(name => addPlayer(null, name)))
+    })
+
+    io.on('connection', function (socket) {
+        console.debug("connection of " + socket.id);
+
+        /*************** CONNECTIONS *****************/
+
+        socket.on('login', (username, token) => login(socket, username, token))
+        socket.on('reconnectUser', (username, token) => login(socket, username, token))
+
+        socket.on('disconnect', function(reason){
+            console.info(socket.player + ' disconnected because ' + reason);
+            let [game, player] = getGameAndPlayer(socket);
+            if(!player) return;
+
+            if(game.conf.playerKickTimeout !== ("Infini" || "Jamais") && !KICKABLE_PLAYERS[player.name]) KICKABLE_PLAYERS[player.name] = setTimeout( () => {
+                CardManager.kickPlayer(player, game, GAMES);
+                CardManager.saveGame(game);
+                io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
+                io.emit('setGames', CardManager.getPublicGames(GAMES));
+                io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
+                socket.leave(game.name);
+            }, CardManager.valueToMillisecond(game.conf.playerKickTimeout), this);
+        })
+
+        /******************* JOIN / QUIT GAME **********************/
+
+        socket.on('join', gameName => {
+            let game = GAMES[gameName];
+            let player = PLAYERS[socket.player];
+            const totalConnected = game.players.length + (game.spectators ? game.spectators.length : 0);
+            if(!game || !player || totalConnected > 7 || totalConnected >= game.conf.maxPlayer) return;
+
+            // If player already in game, kick before allowing him to join again
+            if(socket.game && GAMES[socket.game] && CardManager.updatePlayer(player, GAMES[socket.game])){
+                CardManager.kickPlayer(CardManager.updatePlayer(player, GAMES[socket.game]), GAMES[socket.game], GAMES);
+            }
+
+            socket.game = gameName;
+            game.spectators = game.spectators || [];
+            !game.action ? CardManager.addPlayer(player, game) : CardManager.addSpectator(player, game);
+
+            if(game.action) playForBot(game, socket);
+
+            // Join Room
+            socket.join(gameName);
+            CardManager.saveGame(game);
+            cleanPlayerFromTimeout(player.name);
+
+            // Update chat room
+            ioClientChat.emit("updateRoom", {
+                id: game.name,
+                allowedUsers: [...game.players.filter(p => !p.bot).map(player => player.name)]
+            })
+
+            // Clean players
+            let i = game.players.length;
+            while(i--){
+                if(!game.players[i].bot && !io.sockets.get(game.players[i].id)){
+                    console.info("Clean player " + game.players[i].name)
+                    CardManager.kickPlayer(game.players[i], GAMES[socket.game], GAMES)
+                    return
+                }
+            }
+
+            io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
+            io.emit('setGames', CardManager.getPublicGames(GAMES));
+            io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
+        })
+
+        socket.on('quit', (disconnect) => {
+            const socketPlayer = PLAYERS[socket.player]
+            if(!socketPlayer) return;
+
+            let [game, player] = getGameAndPlayer(socket);
+            if(game){
+                CardManager.kickPlayer(player, game, GAMES);
+                socket.leave(game.name);
+                socket.broadcast.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game));
+                socket.emit('gameInfo', null);
+                CardManager.saveGame(game);
+                io.emit('setGames', CardManager.getPublicGames(GAMES));
+            }
+            
+            // Disconnect from socket if needed
+            if(disconnect){
+                socket.disconnect()
+                const delResult = delete PLAYERS[socketPlayer.name]
+                console.log("Remove user from array = " + delResult)
+            }
+
+            io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES))
+        });
+
+        socket.on('createGame', gameProps => {
+            if(!gameProps) return
+            const gameNumber = Object.keys(GAMES).length;
+            if(gameNumber > 10) return;
+            CardManager.saveGame(CardManager.createGame(GAMES, gameProps));
+           
+            if(Object.keys(GAMES).length > gameNumber){
+                io.emit('setGames', CardManager.getPublicGames(GAMES));
+                console.info('Game created: ' + gameProps.name);
+                socket.emit('gameCreated');
+            }
+
+            ioClientChat.emit("addRoom", {
+                id: gameProps.name,
+                name: "[game] " + gameProps.name,
+                private: true
+            });
+
+        });
+
+        ioClientChat.on('roomAdded', room => {
+            if(room.id.includes("[game]")) {}
+        });
+
+        socket.on('removeGame', gameName => {
+            let game = gameName && GAMES[gameName];
+            const bots = game.conf.bots || 0;
+            if(!gameName || !game || (game.players.length - bots > 0)) return;
+            CardManager.removeGame(GAMES[gameName]);
+            delete GAMES[gameName];
+            io.emit('setGames', CardManager.getPublicGames(GAMES));
+            console.info('Game removed: ' + gameName);
+        });
+
+        /**************** GAME ACTIONS ***********************/
+
+        socket.on('isReady', data => {
+            let [game, player] = getGameAndPlayer(socket);
+            if(!player) return;
+            player = CardManager.updatePlayer({...player, ready: !player.ready}, game);
+
+            // If all ready
+            let readyCount = 0;
+            let allReady = true;
+            game.players.forEach((player) => {
+                if(player.ready) readyCount++;
+                allReady = allReady && player.ready
+            });
+
+            cleanPlayerFromTimeout(player.name);
+  
+            if(allReady && game.conf.minPlayer <= readyCount){
+                CardManager.startGame(game);
+                socket.emit('setGames', CardManager.getPublicGames(GAMES));
+                game.players.forEach( player => io.sockets.get(player.id) && io.sockets.get(player.id).emit('setHand', player.hand));
+                // Play for bot
+                playForBot(game, socket);
+            }
+
+            CardManager.saveGame(game);
+            io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, false, true));
+        });
+
+        socket.on('selectPick', cards => {
+            let [game, player] = getGameAndPlayer(socket);
+            if(!player) return;
+
+            // Not the good player, should not happen front-end should block!
+            if(socket.player !== game.currentPlayer || game.action !== "pick") return;
+
+            // Already have the maximum cards
+            player = CardManager.updatePlayer(player, game);
+            if(player.hand.length > 6) return;
+
+            let card = null;
+            if(cards && cards[0] && cards[0].value === "0" && cards[0].color === "heart") card = cards[0];
+            // Pick card
+            let lastPlayed = [...game.playedCards[game.playedCards.length - 2]];
+            console.debug("Last played " + JSON.stringify(lastPlayed));
+            if(!card && cards && cards.length && CardManager.contains(cards[0], lastPlayed)){
+                card = cards[0];
+                lastPlayed = lastPlayed.filter(c => (c.value !== card.value) ||  (c.color !== card.color));
+                console.debug("Last played filtered" + JSON.stringify(lastPlayed));
+            }
+
+            CardManager.saveGame(game);
+            
+            console.debug(player.name + " select pick " + JSON.stringify(card));
+            socket.broadcast.to(game.name).emit('selectedPick', card);
+        });
+
+        socket.on('pick', cards => {
+            let [game, player] = getGameAndPlayer(socket);
+            if(!player) return;
+
+            // Not the good player, should not happen front-end should block!
+            if(socket.player !== game.currentPlayer || game.action !== "pick") return;
+
+            // Already have the maximum cards
+            if(player.hand.length > 6) return;
+
+            // Pick card
+            let card;
+            let lastPlayed = game.playedCards[game.playedCards.length - 2];
+            console.debug("Last played " + JSON.stringify(lastPlayed));
+            if(cards && cards.length && CardManager.contains(cards[0], lastPlayed)){
+                card = cards[0];
+                lastPlayed = lastPlayed.filter(c => (c.value !== card.value) ||  (c.color !== card.color));
+                console.debug("Last played filtered" + JSON.stringify(lastPlayed));
+            } else if(!cards) {
+                card = game.pickStack.splice(0,1)[0];
+            }
+
+            if(!card){
+                console.error("Not card matching pick!");
+                return;
+            }
+            
+            // Card is valid
+            player.hand =[...player.hand, card];
+            game.pickStack = game.pickStack.concat(lastPlayed);
+            console.debug(player.name + " pick " + JSON.stringify(card));
+            CardManager.updatePlayer(player, game);
+            CardManager.nextAction(game);
+            cleanPlayerFromTimeout(player.name);
+
+            // For Front-End
+            game.quickPlay = !!CardManager.quickPlay(player, [card], game);
+            CardManager.saveGame(game);
+            socket.emit('setHand', player.hand);
+            io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, false, true));
+
+            // Play for bot
+            playForBot(game, socket);
+        });
+
+        socket.on('play', cards => {
+            let [game, player] = getGameAndPlayer(socket);
+            if(!player || game.action !== "play") return;
+
+            console.debug(socket.player + " wants to play " + JSON.stringify(cards));
+            var originalCards = [...cards];
+
+            // Is it a quick play ?
+            const qp = CardManager.quickPlay(player, originalCards, game);
+            if(qp === "bash") io.to(game.name).emit('bash', player.name);
+            if(socket.player !== game.currentPlayer && !qp) return;
+
+            // Check played cards
+            if(!CardManager.checkPlayedCards(originalCards)){
+                io.to(game.name).emit('notAllowed', player.name);
+                return;
+            } 
+
+            cleanPlayerFromTimeout(player.name);
+
+            // If validation succeed, set hand
+            player.hand = player.hand.filter(userCard => {
+                let found = null;
+                for(let i = 0; i < cards.length; i++){
+                    if(cards[i].value === userCard.value && cards[i].color === userCard.color){
+                        found = i;
+                        break;
+                    }
+                }
+                if(found !== null && cards.length) cards.splice(found, 1);  
+                return found === null;
+            });
+            
+            if(!cards.length){
+                if(qp === "quick"){
+                    CardManager.updatePlayer(player, game);
+                    let lastPlay = game.playedCards[game.playedCards.length - 1];
+                    game.playedCards[game.playedCards.length - 1] = lastPlay.concat(originalCards);
+                    io.to(game.name).emit('quickPlayed', player.name);
+
+                    // Stats
+                    const p = game.players.filter(player => player.name === game.currentPlayer)[0];
+                    p.stats.quickplay.taken++;
+                    player.stats.quickplay.done++;
+                    
+                } else {
+                    CardManager.updatePlayer(player, game);
+                    CardManager.nextAction(game);
+                    game.playedCards.push(originalCards);
+                }
+                game.quickPlay = false;
+                socket.emit('setHand', player.hand);
+                CardManager.saveGame(game);
+                io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, false, true));
+                console.debug(player.name + " played " + JSON.stringify(originalCards));
+            } else {
+                console.error("Cards are not matching what server excpect! " + JSON.stringify(cards));
+            }
+        });
+
+        socket.on('moinsDeNeuf', data => {
+            let [game, player] = getGameAndPlayer(socket);
+            if(!player || game.action !== "play" || socket.player !== game.currentPlayer) return;
+
+            console.debug(player.name + " call for 'moins de neuf' with " + JSON.stringify(player.hand));
+
+            const scores = CardManager.endRound(game, player.name);
+            CardManager.saveGame(game, true);
+            console.debug("Scores: " + JSON.stringify(scores));
+            if(scores.winners.names.length){
+                io.to(game.name).emit('roundEnd', scores);
+                io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, true, true));
+            }
+        });
+
+        socket.on('refresh', data => {
+            let [game, player] = getGameAndPlayer(socket);
+            if(!player) {
+                socket.emit('setGames', CardManager.getPublicGames(GAMES));
+                socket.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES));
+                return;
+            }
+
+            console.info(player.name + " call for refresh. ");
+            socket.emit('gameInfo', CardManager.getPublicGameInfo(game));
+            socket.emit('setHand', player.hand);
+        });
+    });
+
+    /*************** UTILITIES ******************/
+
+    function getGameAndPlayer(socket){
+        let game = GAMES[socket.game];
+        let player = CardManager.updatePlayer(PLAYERS[socket.player], game);
+        return player ? [game, player] : [];
+    }
+
+    function addPlayer(socket, name){
+        if(!name) return
+        UserModel.find({login: name}, (err, userModels) => {
+            if(err) console.error(JSON.stringify(err));
+            else {
+                PLAYERS[name] = {
+                    id: socket ? socket.id : null,
+                    name,
+                    isDBUser: userModels.length > 0
+                }
+                if(socket) socket.player = name
+            }
+        })
+    }
+
+    function login(socket, username){
+        if(!username) return
+
+        addPlayer(socket, username)
+        console.info('Connection: ' + username)
+
+        // Retrieve current game 
+        let currentGame = {game: null, hand: null}
+        Object.keys(GAMES).forEach(name => {
+            let g = GAMES[name];
+            g.players.forEach(player => {
+                if(player.name !== username) return
+                socket.game = g.name
+                socket.join(g.name)
+                CardManager.updatePlayer(PLAYERS[socket.player], g)
+                CardManager.saveGame(g)
+                currentGame.game = g
+                currentGame.hand = player.hand
+                console.info(username + ' successfully retrieved game!')
+            })
+        })
+
+        socket.emit('setGames', CardManager.getPublicGames(GAMES))
+        //socket.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES))
+        io.emit('setPlayers', CardManager.getPublicPlayers(PLAYERS, GAMES))
+        if(currentGame.game) {
+            socket.emit('gameInfo', CardManager.getPublicGameInfo(currentGame.game))
+            socket.emit('setHand', currentGame.hand)
+            // Play for bot
+            playForBot(currentGame.game, socket)
+        }
+
+        cleanPlayerFromTimeout(username)
+    }
+
+    function cleanPlayerFromTimeout(username){
+        // Clear from kickable players
+        if(KICKABLE_PLAYERS[username]){
+            clearTimeout(KICKABLE_PLAYERS[username]);
+            delete KICKABLE_PLAYERS[username];
+            console.info(username + ' removed from timeouts!');
+        }
+    }
+
+    let botPlaying = false;
+    function playForBot(game, socket){
+        if(botPlaying || game.endGame) return;
+        game.spectators = game.spectators || [];
+        if((game.players.length + game.spectators.length) <= game.conf.bots) return;
+
+        let currentPlayer;
+        let onePlayerHaveLessThan3Cards = false;
+        game.players.forEach(player => {
+            if(!currentPlayer && player.name === game.currentPlayer){
+                currentPlayer = player;
+            } else if(!onePlayerHaveLessThan3Cards && player.hand.length < 4){
+                onePlayerHaveLessThan3Cards = true;
+            }
+        });
+
+        if(currentPlayer && currentPlayer.bot){
+            botPlaying = true;
+            console.debug(currentPlayer.name + " hand: " + JSON.stringify(currentPlayer.hand));
+            switch(game.action){
+                case "pick":
+
+                    let pickCard = null;
+                    const lastPlayFull = game.playedCards[game.playedCards.length - 2];
+                    let lastPlay = lastPlayFull.filter((card, index) => (index === 0) || (index === lastPlayFull.length - 1));
+
+                    // Check matching card
+                    const matchingCards = lastPlay.filter(card => currentPlayer.hand.filter(c => CardGame.getValue(c) === CardGame.getValue(card)).length !== 0);
+                    matchingCards.sort((c1, c2) => CardGame.getValue(c1) - CardGame.getValue(c2));
+
+                    if(matchingCards.length){
+                        pickCard = matchingCards.splice(0,1)[0];
+                    }
+
+                    // Take small cards
+                    if(!pickCard){
+                        lastPlay.sort((c1, c2) => CardGame.getValue(c2) - CardGame.getValue(c1));
+                        if(CardGame.getValue(lastPlay[0]) < 3) pickCard = lastPlay.splice(0,1)[0];
+                    }
+
+                    let selected = pickCard;
+
+                    // Pick from stack
+                    if(!pickCard){
+                        pickCard = pickCard || game.pickStack.splice(0,1)[0];
+                        game.pickStack = game.pickStack.concat(lastPlayFull);
+                        selected = {color: 'heart', value: '0'};
+                    }
+                    
+                    currentPlayer.hand.push(pickCard);
+                    console.debug(currentPlayer.name + " is picking: " + JSON.stringify(pickCard));
+
+                    setTimeout(() => {
+                        CardManager.updatePlayer(currentPlayer);
+                        io.to(game.name).emit('selectedPick', selected);
+                        setTimeout(() => {
+                            CardManager.nextAction(game);
+                            io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, false, true));
+                            botPlaying = false;
+                            playForBot(game, socket);
+                        }, 800)
+                    }, 2000);
+                    return;
+        
+                case "play":
+                    
+                    let cards = [];
+                    const hand = [...currentPlayer.hand].sort((c1, c2) => CardGame.getValue(c2) - CardGame.getValue(c1));
+                    
+                    // Check moins de neuf
+                    const sum = hand.reduce((a, b) => a + CardGame.getValue(b), 0);
+                    if(sum < 10){
+                        setTimeout(() => {
+                            const scores = CardManager.endRound(game, currentPlayer.name);
+                            CardManager.saveGame(game, true);
+                            console.debug("Scores: " + JSON.stringify(scores));
+                            botPlaying = false;
+                            if(scores.winners.names.length){
+                                io.to(game.name).emit('roundEnd', scores);
+                                io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, true, true));
+                            }
+                        }, 1000);
+                        return;
+                    }
+
+                    let lastPlayedCards = game.playedCards[game.playedCards.length - 1];
+                    const lastPlayValues = lastPlayedCards.map(c => CardGame.getValue(c));
+
+                    const jokers = hand.filter(card => card.color === "joker");
+
+                    // Check same card values 
+                    const sameValue = {};
+                    for(let i = 0; i < hand.length - 1; i++){
+                        const card = hand[i];
+                        const nextCard = hand[i + 1];
+                        if(CardGame.getValue(card) === CardGame.getValue(nextCard)) {
+                            if(sameValue[CardGame.getValue(card)]){
+                                sameValue[CardGame.getValue(card)]++;
+                            } else {    
+                                sameValue[CardGame.getValue(card)] = 1;
+                            }
+                        }
+                    }
+
+                    let highestValue = 0;
+                    Object.keys(sameValue).forEach( v => {
+                        const value = parseInt(v);
+                        if(value > highestValue) highestValue = value;
+                    });
+                    if(highestValue && !lastPlayValues.includes(highestValue)){
+                        cards = hand.filter(card => CardGame.getValue(card) === highestValue);
+                        if(cards.length && jokers.length) while(jokers.length) cards.splice(1, 0, jokers.shift());
+                    }
+
+                    // If no cards selected take highest
+                    if(!cards.length) hand.forEach(card => {
+                        if(cards.length) return;
+                        if(!lastPlayValues.includes(CardGame.getValue(card))){
+                            cards.push(card);
+                            return;
+                        }
+                        if(onePlayerHaveLessThan3Cards && jokers.length) while(jokers.length) cards.push(jokers.shift());
+                    });
+
+                     // Set hand
+                     const finalCards = [...cards];
+                     currentPlayer.hand = currentPlayer.hand.filter(userCard => {
+                        let found = null;
+                        for(let i = 0; i < cards.length; i++){
+                            if(cards[i].value === userCard.value && cards[i].color === userCard.color){
+                                found = i;
+                                break;
+                            }
+                        }
+                        if(found !== null && cards.length) cards.splice(found, 1);  
+                        return found === null;
+                    });
+
+                    console.debug(currentPlayer.name + " is playing: " + JSON.stringify(finalCards));
+                    setTimeout(() => {
+                        CardManager.updatePlayer(currentPlayer);
+                        game.playedCards.push(finalCards);
+                        CardManager.nextAction(game);
+                        io.to(game.name).emit('gameInfo', CardManager.getPublicGameInfo(game, false, true));
+                        botPlaying = false;
+                        playForBot(game, socket);
+                    }, 2000);
+                    return;
+            }
+        }
+    }
+
+    function getConnectedPlayers(){
+        const connected = io.clients().connected
+        return [...new Set(Object.keys(connected).map(key => connected[key].player))]
+    }
+}

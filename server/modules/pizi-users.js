@@ -5,6 +5,7 @@ const utils = require('../utils/utils')
 
 /* ERRORS */
 const UserCreationError = new Error("Cannot create user!")
+const UserExistError = new Error("User already exist!")
 const UserCreationCheckCodeError = new Error("Wrong code!")
 const EmailError = new Error("Cannot sent email!")
 const NotAuthorizedError = new Error("You are not authorized to proceed this operation!")
@@ -125,7 +126,11 @@ module.exports = ({config, console, serverLibs}) => {
                 }
             })
         } else if(req.body.email && req.body.login && req.body.password && !CHECK_CODE_SENT[req.body.login]){
-            sendCode(req.body.login, req.body, false, (err, message) => err ? utils.throwError(err, res) : res.json(message))
+            // Check user don't exist
+            UserModel.findOne({$or: [{login: req.body.login}, {email: req.body.email}]}, ["-password", "-_id"], (err, model) => {
+                if(model) utils.throwError(UserExistError, res)
+                else sendCode(req.body.login, req.body, false, (err, message) => err ? utils.throwError(err, res) : res.json(message))
+            })  
         } else {
             utils.throwError(UserCreationError, res)
         }
