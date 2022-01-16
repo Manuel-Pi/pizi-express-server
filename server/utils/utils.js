@@ -15,6 +15,8 @@ const MODULES_FOLDER = "../modules/"
 mongoose.models = mongoose.models || {}
 const saltRounds = 10
 
+const TEMPLATES = {}
+
 module.exports = {
     /**
      * Register pizi web app
@@ -173,5 +175,25 @@ module.exports = {
         return bcrypt.hashSync(password, saltRounds)
     },
 
-    DEFAULT_ROLE: "anonymous"
+    DEFAULT_ROLE: "anonymous",
+
+    getTemplate(templateName, data = {}, force = false){
+        let template = null
+        try {
+            if(TEMPLATES[templateName] && !force) template = TEMPLATES[templateName]
+            else {
+                template = fs.readFileSync(path.join(__dirname, "templates", templateName), 'utf8')
+                if(template) TEMPLATES[templateName] = template
+            }
+        } catch (e) {
+            console.error(e)
+        }
+        
+        return this.parseTemplate(template, data)
+    },
+
+    parseTemplate(template = "", data = {}){
+        if(!template) return
+        return template.replaceAll(/\${([^}]*)}/g, (match, prop) => data[prop])
+    }
 }

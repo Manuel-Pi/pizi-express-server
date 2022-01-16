@@ -58,19 +58,15 @@ module.exports = ({config, console, serverLibs}) => {
     const sendCode = (userLogin, userData, generateUrlCode, callback) => {
         const checkCode = "" + Math.floor(100000 + Math.random() * 900000)
         const urlCode = "" + Math.floor(100000 + Math.random() * 900000)
-        const url = "http://localhost:8087/server-dev/password-reset/" + urlCode
 
-        const email = generateUrlCode ? {
-            from: 'pizi-server@no-reply.com',
+        const email = {
+            from: 'Moins de neuf <pizi.dev@gmail.com>',
             to: userData.email,
-            subject: "Reset password code",
-            html: "<h2>code: <b>" + checkCode + "</b></h2><h2><a href=\"" + url + "\">" + url+ "</a></h2>"
-        } : {
-            from: 'pizi-server@no-reply.com',
-            to: userData.email,
-            subject: "Validation Code",
-            html: "<h2>code: <b>" + checkCode + "</b></h2>"
+            subject: generateUrlCode ? "Réinitiaisation du mot de passe" : "Création de compte",
+            html: utils.getTemplate( generateUrlCode ? "resetPasswordEmailTemplate.html" : "checkCodeEmailTemplate.html", {...userData, checkCode, urlCode})
         }
+
+        console.debug("try sending email code to: " + userData.email + "...")
 
         if(serverLibs.email) serverLibs.email.sendMail(email, (err, result) => {
             if(err)callback(EmailError)
