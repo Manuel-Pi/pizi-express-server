@@ -37,7 +37,7 @@ module.exports = ({config, console, serverLibs}) => {
         const allowedProps = ['email', 'login', 'password']
         if(validationPropsAllowed) allowedProps.push('checkPassword', 'keyCode', 'urlCode')
         const cleanUser = {}
-        Object.keys(user).filter(key => allowedProps.includes(key)).forEach(key => cleanUser[key] = user[key])
+        Object.keys(user).filter(key => allowedProps.includes(key)).forEach(key => cleanUser[key] = user[key] && user[key].toString ? user[key].toString() : user[key])
         return cleanUser
     }
 
@@ -111,9 +111,9 @@ module.exports = ({config, console, serverLibs}) => {
     }
 
     return express.Router().post("/createUser", (req, res) => {
-        // TODO: check data!
-        if(req.body.login && req.body.checkCode){
-            checkCode(req.body.login, req.body.checkCode, null, (err, user) => {
+        const data = getCleanUser(req.body, true)
+        if(data.login && data.checkCode){
+            checkCode(data.login, data.checkCode, null, (err, user) => {
                 if(err) utils.throwError(err, res)
                 else {
                     const model = new UserModel()
@@ -125,11 +125,11 @@ module.exports = ({config, console, serverLibs}) => {
                     model.save((err) => err ? utils.throwError(UserCreationError, res) : res.json({ message: 'Model created!'}))
                 }
             })
-        } else if(req.body.email && req.body.login && req.body.password && !CHECK_CODE_SENT[req.body.login]){
+        } else if(data.email && data.login && data.password && !CHECK_CODE_SENT[data.login]){
             // Check user don't exist
-            UserModel.findOne({$or: [{login: req.body.login}, {email: req.body.email}]}, ["-password", "-_id"], (err, model) => {
+            UserModel.findOne({$or: [{login: data.login}, {email: data.email}]}, ["-password", "-_id"], (err, model) => {
                 if(model) utils.throwError(UserExistError, res)
-                else sendCode(req.body.login, req.body, false, (err, message) => err ? utils.throwError(err, res) : res.json(message))
+                else sendCode(data.login, data, false, (err, message) => err ? utils.throwError(err, res) : res.json(message))
             })  
         } else {
             utils.throwError(UserCreationError, res)

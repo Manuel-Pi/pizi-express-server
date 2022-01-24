@@ -5466,6 +5466,9 @@ app .card {
   box-shadow: -1px 1px 1px rgba(0, 0, 0, 0.2);
   user-select: none;
 }
+app .card.moving {
+  z-index: 7;
+}
 app .card.notTurned {
   background-color: #333;
   border-color: peru;
@@ -6823,6 +6826,7 @@ app .create-account p {
 }
 app .create-account p .username {
   color: peru;
+  word-break: break-word;
 }
 app .players .pizi-table {
   width: 100%;
