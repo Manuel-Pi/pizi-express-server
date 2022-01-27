@@ -69,7 +69,7 @@ module.exports = ({config, console, serverLibs}) => {
 
         console.debug("try sending email code to: " + userData.email + "...")
 
-        if(serverLibs.email) serverLibs.email.sendMail(email, (err, result) => {
+        if(serverLibs.email()) serverLibs.email().sendMail(email, (err, result) => {
             if(err)callback(EmailError)
             else {
                 CHECK_CODE_SENT[userLogin] = {
@@ -79,7 +79,7 @@ module.exports = ({config, console, serverLibs}) => {
                     date: new Date(),
                     attempt: 3
                 }
-                serverLibs.email.close()
+                serverLibs.email().close()
                 callback(null, {message: 'ok'})
             }
         })

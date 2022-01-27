@@ -13,7 +13,7 @@ const EmailError = new Error("Cannot sent email!")
  * @returns: the express middleware
  */
 module.exports = ({config, console, serverLibs = {}}) => express.Router().post('/sendEmail', (req, res) => {
-    const email = serverLibs.email
+    const email = serverLibs.email()
     if(email && config){
         if(!req.user){
             res.status(500).json({message: NotAuthorizedError.message})

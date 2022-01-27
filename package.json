@@ -9,7 +9,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "startNodemon": "nodemon ./server.js --inspect",
     "clearPort": "kill -9 $(lsof -ti:8087)",
-    "createCertificate": "cd ./server/certificates/ && openssl req -x509 -nodes -days 730 -newkey rsa:2048  -keyout cert.key -out cert.pem -config req.cnf -sha256"
+    "createCertificate": "cd ./server/certificates/ && openssl req -x509 -nodes -days 730 -newkey rsa:2048  -keyout cert.key -out cert.pem -config req.cnf -sha256",
+    "getGmailAuth": "node -e 'require(\"./server/libs/gmailOauth\").getAuth()'"
   },
   "author": "Manuel Pi",
   "license": "ISC",
