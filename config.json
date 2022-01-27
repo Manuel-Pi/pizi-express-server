@@ -35,8 +35,6 @@
 		"role": "admin",
 		"printToConsole": false,
 		"auth": {
-			"type": "OAuth2",
-			"json": "../data/gmail.json"
 		}
 	},
 	"jwt": {

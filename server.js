@@ -121,3 +121,9 @@ const setServerState = (state = {}) => {
     socketServer.of('/pizi-server').emit("infos", serverState)
 }
 socketServer.of('/pizi-server').on('connection', socket => setServerState({apps}))
+
+app.get('/email-token', (req, res) => {
+    const GmailOauth = require('./server/libs/gmailOauth.js')
+    GmailOauth.getToken(req.query.code)
+    res.redirect('/')
+})
