@@ -8,7 +8,7 @@ const console = serverLibs.logger.getLogger()
 
 let email
 try{
-    GmailOauth.getConnectionData(connectionData => email = nodemailer.createTransport(connectionData))
+    GmailOauth.onConnectionData(connectionData => email = nodemailer.createTransport(connectionData))
 } catch(err){
     console.error("Cannot configure email transport!", err.message)
 }
