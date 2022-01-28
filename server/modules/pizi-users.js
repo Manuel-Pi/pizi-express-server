@@ -72,6 +72,7 @@ module.exports = ({config, console, serverLibs}) => {
         if(serverLibs.email()) serverLibs.email().sendMail(email, (err, result) => {
             if(err)callback(EmailError)
             else {
+                console.debug("email sent!")
                 CHECK_CODE_SENT[userLogin] = {
                     checkCode,
                     urlCode: generateUrlCode ? urlCode : null,

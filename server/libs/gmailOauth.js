@@ -26,10 +26,10 @@ function authorize(callback = () => null) {
     } else {
         // Check if we have previously stored a token.
         fs.readFile(TOKEN_PATH, (err, token) => {
-            if(err) {
+            if(err){
                 const authUrl = oAuth2Client.generateAuthUrl({
                     access_type: 'offline',
-                    scope: SCOPES,
+                    scope: SCOPES
                 })
                 console.log('Authorize this app by visiting this url:', authUrl)
                 callback(null)
@@ -42,6 +42,19 @@ function authorize(callback = () => null) {
     }
 }
 
+function getConnectionData(){
+    return {
+        service: "gmail",
+        auth: {
+            type: "OAuth2",
+            user: CREDENTIALS.emailUser,
+            clientId: CREDENTIALS.emailClientID,
+            clientSecret: CREDENTIALS.emailClientSecret,
+            refreshToken: oAuth2Client.credentials.refresh_token
+        }
+    }
+}
+
 let connectionCallback
 
 module.exports = {
@@ -49,16 +62,7 @@ module.exports = {
         authorize(oAuth2Client => {
             if(!oAuth2Client){
                 connectionCallback = callback
-            } else callback({
-                service: "Gmail",
-                auth: {
-                    type: "OAuth2",
-                    user: CREDENTIALS.emailUser,
-                    clientId: CREDENTIALS.emailClientID,
-                    clientSecret: CREDENTIALS.emailClientSecret,
-                    refreshToken: oAuth2Client.credentials.refresh_token
-                }
-            })
+            } else callback(getConnectionData())
         })
         
     },
@@ -69,20 +73,10 @@ module.exports = {
             TOKEN = token
             // Store the token to disk for later program executions
             fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
-                if (err) return console.error(err)
+                if(err) return console.error(err)
                 console.log('Token stored to', TOKEN_PATH)
             })
-
-            if(connectionCallback) connectionCallback({
-                service: "Gmail",
-                auth: {
-                    type: "OAuth2",
-                    user: CREDENTIALS.emailUser,
-                    clientId: CREDENTIALS.emailClientID,
-                    clientSecret: CREDENTIALS.emailClientSecret,
-                    refreshToken: oAuth2Client.credentials.refresh_token
-                }
-            })
+            if(connectionCallback) connectionCallback(getConnectionData())
         })
     }
 }
