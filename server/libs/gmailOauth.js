@@ -8,7 +8,8 @@ const CREDENTIALS = process.env.EMAIL_USER ? {
     emailUser: process.env.EMAIL_USER,
     emailClientID: process.env.EMAIL_CLIENT_ID,
     emailClientSecret: process.env.EMAIL_CLIENT_SECRET,
-    emailRedirectUris: process.env.EMAIL_REDIRECT_URIS
+    emailRedirectUris: process.env.EMAIL_REDIRECT_URIS,
+    emailRefreshToken: process.env.EMAIL_REFRESH_TOKEN
 } : require("../../../data/gmail.json")
 
 const oAuth2Client = new google.auth.OAuth2(CREDENTIALS.emailClientID, CREDENTIALS.emailClientSecret, CREDENTIALS.emailRedirectUris)
@@ -20,7 +21,7 @@ const oAuth2Client = new google.auth.OAuth2(CREDENTIALS.emailClientID, CREDENTIA
  * @param {function} callback The callback to call with the authorized client.
  */
 function authorize(callback = () => null) {
-    if(TOKEN){
+    if(TOKEN || CREDENTIALS.emailRefreshToken){
         oAuth2Client.setCredentials(TOKEN)
         callback(oAuth2Client)
     } else {
@@ -50,7 +51,7 @@ function getConnectionData(){
             user: CREDENTIALS.emailUser,
             clientId: CREDENTIALS.emailClientID,
             clientSecret: CREDENTIALS.emailClientSecret,
-            refreshToken: oAuth2Client.credentials.refresh_token
+            refreshToken: CREDENTIALS.emailRefreshToken || oAuth2Client.credentials.refresh_token
         }
     }
 }
@@ -69,6 +70,7 @@ module.exports = {
     getToken(code){
         oAuth2Client.getToken(code, (err, token) => {
             if(err) return console.error('Error retrieving access token', err)
+            console.log("refresh token: " + token.refresh_token)
             oAuth2Client.setCredentials(token)
             TOKEN = token
             // Store the token to disk for later program executions
