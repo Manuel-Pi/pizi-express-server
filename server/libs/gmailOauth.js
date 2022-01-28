@@ -69,10 +69,10 @@ module.exports = {
     },
     getToken(code){
         oAuth2Client.getToken(code, (err, token) => {
-            if(err) return console.error('Error retrieving access token', err)
-            console.log("refresh token: " + token.refresh_token)
+            if(err) return console.error('Error retrieving access token', err)       
             oAuth2Client.setCredentials(token)
             TOKEN = token
+            console.debug("token: " + JSON.stringify(token))
             // Store the token to disk for later program executions
             fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
                 if(err) return console.error(err)
