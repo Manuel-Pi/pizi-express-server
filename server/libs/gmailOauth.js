@@ -72,6 +72,7 @@ module.exports = {
             if(err) return console.error('Error retrieving access token', err)       
             oAuth2Client.setCredentials(token)
             TOKEN = token
+            if(!token.refresh_token) console.info("no refresh token!")
             console.debug("token: " + JSON.stringify(token))
             // Store the token to disk for later program executions
             fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {

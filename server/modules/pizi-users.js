@@ -35,7 +35,7 @@ module.exports = ({config, console, serverLibs}) => {
 
     const getCleanUser = (user, validationPropsAllowed = false) => {
         const allowedProps = ['email', 'login', 'password']
-        if(validationPropsAllowed) allowedProps.push('checkPassword', 'keyCode', 'urlCode')
+        if(validationPropsAllowed) allowedProps.push('checkPassword', 'checkCode', 'urlCode')
         const cleanUser = {}
         Object.keys(user).filter(key => allowedProps.includes(key)).forEach(key => cleanUser[key] = user[key] && user[key].toString ? user[key].toString() : user[key])
         return cleanUser
@@ -63,7 +63,7 @@ module.exports = ({config, console, serverLibs}) => {
         const email = {
             from: 'Moins de neuf <pizi.dev@gmail.com>',
             to: userData.email,
-            subject: generateUrlCode ? "Réinitiaisation du mot de passe" : "Création de compte",
+            subject: generateUrlCode ? "Réinitialisation du mot de passe" : "Création de compte",
             html: utils.getTemplate( generateUrlCode ? "resetPasswordEmailTemplate.html" : "checkCodeEmailTemplate.html", {...userData, checkCode, urlCode})
         }
 
