@@ -1,0 +1,22 @@
+post:
+  summary: Get token
+  description: Get an oauth token
+  tags:
+    - oauth
+  requestBody:
+      description: The grant payload
+      required: true
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            oneOf:
+              - $ref: '../../components/schemas/oauth/passwordGrantPayload.yaml'
+              - $ref: '../../components/schemas/oauth/authorizationCodeGrantPayload.yaml'
+              - $ref: '../../components/schemas/oauth/refreshTokenGrantPayload.yaml'
+  responses:
+    "200":
+      description: The token
+      content:
+        application/json:
+          schema:
+            $ref: "../../components/schemas/oauth/oauthToken.yaml"

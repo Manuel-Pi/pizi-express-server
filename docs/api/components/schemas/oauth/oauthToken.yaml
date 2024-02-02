@@ -1,0 +1,24 @@
+type: object
+required:
+  - access_token
+  - access_token_expires_at
+  - refresh_token
+  - refresh_token_expires_at
+  - user
+properties:
+  access_token:
+    type: string
+    description: The token to use to authenticate a request
+  access_token_expires_at: 
+    type: string
+    description: The expiration date of the access_token
+  refresh_token:
+    type: string
+    description: A token use to renew the access_token
+  refresh_token_expires_at:
+    type: string
+    description: The expiration date of the refresh_token
+  user:
+    type: object
+    description: The user object from db
+  

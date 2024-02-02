@@ -1,0 +1,299 @@
+openapi: 3.0.1
+info:
+  title: pizi-server
+  version: 1.0.0
+  description: nodeJS server
+servers:
+  - url: 'https://localhost:2200'
+    description: local dev serveur
+paths:
+  /api/oauth/token:
+    post:
+      summary: Get token
+      description: Get an oauth token
+      tags:
+        - oauth
+      requestBody:
+        description: The grant payload
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/passwordGrantPayload'
+                - $ref: '#/components/schemas/authorizationCodeGrantPayload'
+                - $ref: '#/components/schemas/refreshTokenGrantPayload'
+      responses:
+        '200':
+          description: The token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/oauthToken'
+  /api/oauth/authorize:
+    get:
+      summary: Get token (authorization_code grant)
+      description: Get an oauth token using authorization_code grant
+      tags:
+        - oauth
+      requestBody:
+        description: The grant payload
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - client_id
+                - username
+                - password
+              properties:
+                client_id:
+                  type: string
+                state:
+                  type: string
+                  description: A state to save data or prevent CSRF attacks
+                redirectUri:
+                  type: string
+                  description: The client uri to use for code redirection
+                username:
+                  type: string
+                  description: User username
+                password:
+                  type: string
+                  description: User password
+      responses:
+        '200':
+          description: The token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/oauthToken'
+  '/api/users/{id}':
+    get:
+      summary: get an user by id
+      tags:
+        - users
+      security:
+        - oAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The user id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: the created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '404':
+          description: user not found
+        '500':
+          description: server error
+  /api/users/list:
+    post:
+      description: list users
+      tags:
+        - users
+      security:
+        - oAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: search options
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                  description: the user id
+                  readOnly: true
+      responses:
+        '200':
+          headers:
+            count:
+              schema:
+                type: integer
+              description: users matching filter (without pagination)
+          description: the users list matching filter and pagination
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/user'
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '404':
+          description: user not found
+        '415':
+          description: unsupported media-type
+        '500':
+          description: server error
+components:
+  responses:
+    InvalidRequest:
+      description: the request is not valid.
+    NotAuthorized:
+      description: the requester is unauthorized (invalid or missing token).
+    NotFound:
+      description: object not found.
+    Conflict:
+      description: the object already exist.
+    UnsupportedMediaType:
+      description: unsupported media-type.
+    Server:
+      description: server error.
+  securitySchemes:
+    oAuth:
+      type: oauth2
+      description: 'This API uses oAuth 2 with the authorization_code, password and refresh_token grant flows'
+      flows:
+        authorizationCode:
+          authorizationUrl: /oauth/authorize
+          tokenUrl: /api/oauth/token
+          refreshUrl: /api/oauth/token
+          scopes: {}
+        password:
+          tokenUrl: /api/oauth/token
+          refreshUrl: /api/oauth/token
+          scopes: {}
+  schemas:
+    authorizationCodeGrantPayload:
+      type: object
+      required:
+        - grant_type
+        - client_id
+        - client_secret
+        - redirect_uri
+        - code
+      properties:
+        grant_type:
+          type: string
+          default: authorization_code
+        client_id:
+          type: string
+        client_secret:
+          type: string
+        redirect_uri:
+          type: string
+          description: A redirect URI that should match one of those of the client
+        code:
+          type: string
+          description: The code returned from the /oauth/authorize path
+    passwordGrantPayload:
+      type: object
+      required:
+        - grant_type
+        - client_id
+        - client_secret
+        - username
+        - password
+      properties:
+        grant_type:
+          type: string
+          default: password
+        client_id:
+          type: string
+        client_secret:
+          type: string
+        username:
+          type: string
+          description: User username
+        password:
+          type: string
+          description: User password
+    refreshTokenGrantPayload:
+      type: object
+      required:
+        - grant_type
+        - client_id
+        - client_secret
+        - refresh_token
+      properties:
+        grant_type:
+          type: string
+          default: refresh_token
+        client_id:
+          type: string
+        client_secret:
+          type: string
+        refresh_token:
+          type: string
+          description: the refresh token
+    authorizationCodePaylaod:
+      type: object
+      required:
+        - client_id
+        - username
+        - password
+      properties:
+        client_id:
+          type: string
+        state:
+          type: string
+          description: A state to save data or prevent CSRF attacks
+        redirectUri:
+          type: string
+          description: The client uri to use for code redirection
+        username:
+          type: string
+          description: User username
+        password:
+          type: string
+          description: User password
+    oauthToken:
+      type: object
+      required:
+        - access_token
+        - access_token_expires_at
+        - refresh_token
+        - refresh_token_expires_at
+        - user
+      properties:
+        access_token:
+          type: string
+          description: The token to use to authenticate a request
+        access_token_expires_at:
+          type: string
+          description: The expiration date of the access_token
+        refresh_token:
+          type: string
+          description: A token use to renew the access_token
+        refresh_token_expires_at:
+          type: string
+          description: The expiration date of the refresh_token
+        user:
+          type: object
+          description: The user object from db
+    user:
+      type: object
+      description: user schema
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: the user id
+          readOnly: true
+        username:
+          type: string
+          description: the user username
+          readOnly: true
+        email:
+          type: string
+          format: email
+          description: the user email
+          readOnly: true

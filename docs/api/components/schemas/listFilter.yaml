@@ -1,0 +1,8 @@
+type: object
+description: search options
+properties:
+  id:
+    type: string
+    format: uuid
+    description: the user id
+    readOnly: true

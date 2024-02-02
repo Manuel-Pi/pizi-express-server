@@ -1,0 +1,29 @@
+get:
+  summary: get an user by id
+  tags:
+    - users
+  security:
+    - oAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: The user id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    "200":
+      description: the created user
+      content:
+        application/json:
+          schema:
+              $ref: "../../components/schemas/users/user.yaml"
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "404":
+      description: user not found
+    "500":
+      description: server error

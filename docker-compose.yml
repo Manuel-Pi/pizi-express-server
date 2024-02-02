@@ -1,25 +1,60 @@
-version: "3.8"
-
 services:
-    mongo:
-        image: mongo
-        volumes:
-            - 'mongodb:/data/db'
 
-    nodejs:
-        image: node:12-alpine
-        ports: 
-            - "8087:8087"
-            - "9229:9229"
-        working_dir: /app
-        volumes:
-            - ./:/app
-            - node_modules:/app/node_modules
-        environment:
-            PORT: 8087
-            MONGODB_URI: "mongodb://mongo/test"
-        command: sh -c "npm install && npm run startNodemon"
+  # VENDORS
+  # -------
 
-volumes: 
-    mongodb:
-    node_modules:
+  # DB
+  mongo:
+    image: mongo
+    restart: always
+    volumes:
+      - mongodb:/data
+    env_file:
+      - ./configs/dev/.env
+      - ./configs/dev/mongo/.env
+      
+  # APP
+  # ---
+
+  pizi-server:
+    build:
+      context: ./
+    env_file:
+      - ./configs/dev/.env
+      - ./configs/dev/pizi-server/.env
+    ports:
+      - "2200:2200"
+      - "9229:9229"
+    command:
+      - node
+      - "--inspect=0.0.0.0"
+      - "--experimental-specifier-resolution=node"
+      - "./server"
+     
+
+  # UTILITIES
+  # ---------
+
+  # DB UI
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    env_file:
+      - ./configs/dev/.env
+      - ./configs/dev/mongo-express/.env
+
+  # OPEN API
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    platform: linux/amd64
+    ports:
+      - 8082:8080
+    volumes:
+      - ./docs/api/build/pizi-server.yaml:/pizi-server.yaml
+    env_file:
+      - ./configs/dev/swagger-ui/.env
+
+volumes:
+  mongodb: ~

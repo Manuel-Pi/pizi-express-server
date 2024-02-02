@@ -1,0 +1,26 @@
+openapi: 3.0.1
+info:
+  title: pizi-server
+  version: 1.0.0
+  description: nodeJS server
+servers:
+  - url: https://localhost:2200
+    description: local dev serveur
+paths:
+  /api/oauth/token:
+    $ref: "./paths/oauth/token.yaml"
+  /api/oauth/authorize:
+    $ref: "./paths/oauth/authorize.yaml"
+
+  /api/users/{id}:
+    $ref: "./paths/users/id.yaml"
+  /api/users/list:
+    $ref: "./paths/users/list.yaml"
+
+components:
+  responses:
+    $ref: "./components/responses/_index.yaml"
+  securitySchemes:
+    $ref: "./components/securitySchemes.yaml"
+  schemas:
+    $ref: "./components/schemas/_index.yaml"

@@ -1,0 +1,21 @@
+type: object
+required:
+  - grant_type
+  - client_id
+  - client_secret
+  - redirect_uri
+  - code
+properties:
+  grant_type:
+    type: string
+    default: authorization_code
+  client_id:
+    type: string
+  client_secret:
+    type: string
+  redirect_uri:
+    type: string
+    description: A redirect URI that should match one of those of the client
+  code:
+    type: string
+    description: The code returned from the /oauth/authorize path

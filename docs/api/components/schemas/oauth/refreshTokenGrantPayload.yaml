@@ -1,0 +1,17 @@
+type: object
+required:
+  - grant_type
+  - client_id
+  - client_secret
+  - refresh_token
+properties:
+  grant_type:
+    type: string
+    default: refresh_token
+  client_id:
+    type: string
+  client_secret:
+    type: string
+  refresh_token:
+    type: string
+    description: the refresh token

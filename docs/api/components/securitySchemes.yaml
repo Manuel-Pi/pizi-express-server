@@ -1,0 +1,13 @@
+oAuth:
+  type: oauth2
+  description: This API uses oAuth 2 with the authorization_code, password and refresh_token grant flows
+  flows:
+    authorizationCode:
+      authorizationUrl: /oauth/authorize
+      tokenUrl: /api/oauth/token
+      refreshUrl: /api/oauth/token
+      scopes: {}
+    password:
+      tokenUrl: /api/oauth/token
+      refreshUrl: /api/oauth/token
+      scopes: {}

@@ -1,0 +1,12 @@
+InvalidRequest:
+  $ref: "./InvalidRequest.yaml"
+NotAuthorized:
+  $ref: "./NotAuthorized.yaml"
+NotFound:
+  $ref: "./NotFound.yaml"
+Conflict:
+  $ref: "./Conflict.yaml"
+UnsupportedMediaType:
+  $ref: "./UnsupportedMediaType.yaml"
+Server:
+  $ref: "./Server.yaml"

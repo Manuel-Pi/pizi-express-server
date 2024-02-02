@@ -1,0 +1,16 @@
+
+# oauth
+authorizationCodeGrantPayload:
+  $ref: "./oauth/authorizationCodeGrantPayload.yaml"
+passwordGrantPayload:
+  $ref: "./oauth/passwordGrantPayload.yaml"
+refreshTokenGrantPayload:
+  $ref: "./oauth/refreshTokenGrantPayload.yaml"
+authorizationCodePaylaod:
+  $ref: "./oauth/authorizationCodePaylaod.yaml"
+oauthToken:
+  $ref: "./oauth/oauthToken.yaml"
+
+# users
+user:
+  $ref: "./users/user.yaml"

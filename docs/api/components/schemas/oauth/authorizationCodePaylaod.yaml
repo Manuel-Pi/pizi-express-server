@@ -1,0 +1,20 @@
+type: object
+required:
+  - client_id
+  - username
+  - password
+properties:
+  client_id:
+    type: string
+  state:
+    type: string
+    description: A state to save data or prevent CSRF attacks
+  redirectUri:
+    type: string
+    description: The client uri to use for code redirection
+  username:
+    type: string
+    description: User username
+  password:
+    type: string
+    description: User password

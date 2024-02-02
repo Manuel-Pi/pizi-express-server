@@ -1,0 +1,17 @@
+type: object
+description: user schema
+properties:
+  id:
+    type: string
+    format: uuid
+    description: the user id
+    readOnly: true
+  username:
+    type: string
+    description: the user username
+    readOnly: true 
+  email:
+    type: string
+    format: email
+    description: the user email
+    readOnly: true

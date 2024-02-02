@@ -1,0 +1,37 @@
+post:
+  description: list [FTName]
+  tags:
+    - [FTName]
+  security:
+    - oAuth: []
+  parameters:
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: "../../components/schemas/listFilter.yaml"
+  responses:
+    "200":
+      headers:
+        count:
+          schema:
+            type: integer
+          description: [FTName] matching filter (without pagination)
+      description: the [FTName] list matching filter and pagination
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: "../../../components/schemas/[FTName]/[FTName|singular].yaml"
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "404":
+      description: [FTName|singular] not found
+    "415":
+      description: unsupported media-type
+    "500":
+      description: server error
