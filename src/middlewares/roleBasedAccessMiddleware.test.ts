@@ -20,7 +20,7 @@ describe("UT - roleBasedAccessMiddleware", () => {
 
 	test("access not allowed if user do not have matching rights", async () => {
 		await addRoleToDb()
-		const middleware = roleBasedAccessMiddleware({users: ['read']})
+		const middleware = roleBasedAccessMiddleware(() => ({users: ['read']}))
 		const req = mockRequest({ userId: user.id })
 		const res = mockResponse(200)
 		const next = jest.fn()
@@ -38,7 +38,7 @@ describe("UT - roleBasedAccessMiddleware", () => {
 				}
 			}
 		})
-		const middleware = roleBasedAccessMiddleware({users: ['read']})
+		const middleware = roleBasedAccessMiddleware(() => ({users: ['read']}))
 		const req = mockRequest({ userId: user.id, params: { id: "fakeid"} })
 		const res = mockResponse(200)
 		const next = jest.fn()
@@ -57,7 +57,7 @@ describe("UT - roleBasedAccessMiddleware", () => {
 				}
 			}
 		})
-		const middleware = roleBasedAccessMiddleware({users: ['read']})
+		const middleware = roleBasedAccessMiddleware(() => ({users: ['read']}))
 		const req = mockRequest({ userId: user.id, params: { id: restrictionIds[0]} })
 		const res = mockResponse(200)
 		const next = jest.fn()
@@ -76,7 +76,7 @@ describe("UT - roleBasedAccessMiddleware", () => {
 				}
 			}
 		})
-		const middleware = roleBasedAccessMiddleware({users: ['read']})
+		const middleware = roleBasedAccessMiddleware(() => ({users: ['read']}))
 		const req = mockRequest({ userId: user.id, params: { id: restrictionIds[0]} })
 		const res = mockResponse(200)
 		const next = jest.fn()
@@ -87,7 +87,7 @@ describe("UT - roleBasedAccessMiddleware", () => {
 	test("access allowed if user have superAdmin role", async () => {
 		const restrictionIds = ["76ccf678-9ebd-44c7-83f9-855c216fcd8c"]
 		const superAdmin = await UserDbAdapter.findOne({username: process.env.SUPER_ADMIN_USERNAME})
-		const middleware = roleBasedAccessMiddleware({users: ['read']})
+		const middleware = roleBasedAccessMiddleware(() => ({users: ['read']}))
 		const req = mockRequest({ userId: superAdmin.id, params: { id: restrictionIds[0]} })
 		const res = mockResponse(200)
 		const next = jest.fn()

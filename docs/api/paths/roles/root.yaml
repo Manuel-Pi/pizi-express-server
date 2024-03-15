@@ -1,0 +1,60 @@
+post:
+  summary: create a role
+  tags:
+    - roles
+  security:
+    - oAuth: []
+  body:
+    requestBody:
+      description: The role payload
+      required: true
+      content:
+        application/jsom:
+          schema:
+            $ref: "../../components/schemas/roles/role.yaml"
+  responses:
+    "200":
+      description: the created role
+      content:
+        application/json:
+          schema:
+              $ref: "../../components/schemas/roles/role.yaml"
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "404":
+      description: role not found
+    "409":
+      description: conflict
+    "500":
+      description: server error
+get:
+  summary: list roles
+  tags:
+    - roles
+  security:
+    - oAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: The role id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    "200":
+      description: the created role
+      content:
+        application/json:
+          schema:
+              type: array
+              items:
+                $ref: "../../components/schemas/roles/role.yaml"
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "500":
+      description: server error

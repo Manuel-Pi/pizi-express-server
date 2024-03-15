@@ -9,9 +9,11 @@ import OAuthClientDbAdapter from './adapters/mongo/OAuthClientDbAdapter.js';
 import path from 'path';
 import RoleDbAdapter from './adapters/mongo/RoleDbAdapter.js';
 import axios from 'axios';
+import { runMigrations } from './Utils.js';
 checkEnvVars();
 async function start() {
     // Setup
+    await runMigrations();
     const superAdminId = await UserDbAdapter.createSuperAdmin();
     await RoleDbAdapter.createSuperAdminRole(superAdminId);
     await OAuthClientDbAdapter.createServerClient();

@@ -7,6 +7,8 @@ export interface IUser extends IModel {
     email: string
     username: string
     password: string
+    settings?: {
+    }
 }
 
 export class User extends Model implements IUser{
@@ -21,6 +23,7 @@ export class User extends Model implements IUser{
     public email: string
     public username: string
     public password: string
+    public settings = {}
 
     constructor(user: IUser){
         super(user)

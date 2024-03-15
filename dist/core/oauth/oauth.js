@@ -9,7 +9,7 @@ export default new oAuth2Server({
     model: {
         async getAccessToken(bearerToken) {
             if (!bearerToken)
-                throw new Error(`missing accessToken`);
+                throw new oAuth2Server.InvalidTokenError(`missing accessToken`);
             const accessToken = await OAuthTokenDbAdapter.findOne({ accessToken: bearerToken });
             if (!accessToken)
                 throw new oAuth2Server.InvalidTokenError(`invalid access token`);
@@ -17,15 +17,15 @@ export default new oAuth2Server({
         },
         async getRefreshToken(bearerToken) {
             if (!bearerToken)
-                throw new Error(`missing refreshToken`);
+                throw new oAuth2Server.InvalidTokenError(`missing refreshToken`);
             const refreshToken = await OAuthTokenDbAdapter.findOne({ refreshToken: bearerToken });
             if (!refreshToken)
-                throw new Error(`invalid refresh token`);
+                throw new oAuth2Server.InvalidTokenError(`invalid refresh token`);
             return refreshToken?.toNodeOAuthRefreshToken();
         },
         async getClient(id, secret) {
             if (!id)
-                throw new Error(`missing clientId`);
+                throw new oAuth2Server.InvalidClientError(`missing clientId`);
             const filter = { id };
             if (secret)
                 filter.secret = secret;
@@ -104,14 +104,17 @@ export function tokenOptions(req) {
         requireClientAuthentication: { refresh_token: req.body.client_id !== process.env.OAUTH_CLIENT_ID }
     };
 }
-export function tokenToSnakeCase(token) {
-    return {
+export function tokenToSnakeCase(token, withRefreshToken = true) {
+    const returnedToken = {
         access_token: token.accessToken,
         access_token_expires_at: token.accessTokenExpiresAt,
-        refresh_token: token.refreshToken,
-        refresh_token_expires_at: token.refreshTokenExpiresAt,
         token_type: token.tokenType,
         user: token.user
     };
+    if (withRefreshToken) {
+        returnedToken.refresh_token = token.refreshToken;
+        returnedToken.refresh_token_expires_at = token.refreshTokenExpiresAt;
+    }
+    return returnedToken;
 }
 //# sourceMappingURL=oauth.js.map

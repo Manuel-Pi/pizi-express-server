@@ -1,9 +1,10 @@
 post:
-  description: list users
+  summary: search roles
   tags:
-    - users
+    - roles
   security:
     - oAuth: []
+  parameters:
   requestBody:
     required: false
     content:
@@ -16,20 +17,20 @@ post:
         count:
           schema:
             type: integer
-          description: users matching filter (without pagination)
-      description: the users list matching filter and pagination
+          description: roles matching filter (without pagination)
+      description: the roles list matching filter and pagination
       content:
         application/json:
           schema:
             type: array
             items:
-              $ref: "../../components/schemas/users/user.yaml"
+              $ref: "../../components/schemas/roles/role.yaml"
     "400":
       description: bad request
     "403":
       description: unauthorized
     "404":
-      description: user not found
+      description: role not found
     "415":
       description: unsupported media-type
     "500":

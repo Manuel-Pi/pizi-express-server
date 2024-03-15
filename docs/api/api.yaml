@@ -12,11 +12,20 @@ paths:
   /api/oauth/authorize:
     $ref: "./paths/oauth/authorize.yaml"
 
-  /api/users/{id}:
+  /api/rest/users:
+    $ref: "./paths/users/root.yaml"
+  /api/rest/users/{id}:
     $ref: "./paths/users/id.yaml"
-  /api/users/list:
-    $ref: "./paths/users/list.yaml"
+  /api/rest/users/search:
+    $ref: "./paths/users/search.yaml"
 
+  /api/rest/roles:
+    $ref: "./paths/roles/root.yaml"
+  /api/rest/roles/{id}:
+    $ref: "./paths/roles/id.yaml"
+  /api/rest/roles/search:
+    $ref: "./paths/roles/search.yaml"
+  
 components:
   responses:
     $ref: "./components/responses/_index.yaml"

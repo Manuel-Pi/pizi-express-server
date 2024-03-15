@@ -1,5 +1,5 @@
 post:
-  description: list [FTName]
+  summary: search [FTName]
   tags:
     - [FTName]
   security:
@@ -24,7 +24,7 @@ post:
           schema:
             type: array
             items:
-              $ref: "../../../components/schemas/[FTName]/[FTName|singular].yaml"
+              $ref: "../../components/schemas/[FTName]/[FTName|singular].yaml"
     "400":
       description: bad request
     "403":

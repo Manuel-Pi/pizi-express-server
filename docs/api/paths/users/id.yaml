@@ -1,5 +1,5 @@
 get:
-  summary: get an user by id
+  summary: get a user by id
   tags:
     - users
   security:
@@ -19,6 +19,68 @@ get:
         application/json:
           schema:
               $ref: "../../components/schemas/users/user.yaml"
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "404":
+      description: user not found
+    "500":
+      description: server error
+put:
+  summary: update a user
+  tags:
+    - users
+  security:
+    - oAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: The user id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  body:
+    requestBody:
+      description: The user payload
+      required: true
+      content:
+        application/jsom:
+          schema:
+            $ref: "../../components/schemas/users/user.yaml"
+  responses:
+    "200":
+      description: the updated user
+      content:
+        application/json:
+          schema:
+              $ref: "../../components/schemas/users/user.yaml"
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "404":
+      description: user not found
+    "500":
+      description: server error
+delete:
+  summary: delete a user
+  tags:
+    - users
+  security:
+    - oAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: The user id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    "200":
+      description: user deleted
     "400":
       description: bad request
     "403":

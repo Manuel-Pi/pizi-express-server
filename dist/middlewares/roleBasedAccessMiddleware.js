@@ -2,18 +2,21 @@ import RoleDbAdapter from "../adapters/mongo/RoleDbAdapter.js";
 import { RIGHTS_DEFINITION } from "../core/models/rights/Right.js";
 import { Role } from "../core/models/Role.js";
 import { HttpErrors } from "../Utils.js";
-export default function (requiredRights) {
+export default function (requiredRightsFunction) {
     return async function (req, res, next) {
         try {
             const userReq = req;
             if (!userReq.userId)
                 throw new HttpErrors.Unauthorized(`user not found in request`);
             const userRoles = await RoleDbAdapter.getUserRoles(userReq.userId);
+            userReq.userRoles = userRoles;
             // If user has superAdminRole access is allowed
             if (userRoles.map(role => role.name).includes(process.env.SUPER_ADMIN_ROLE))
                 return next();
+            const requiredRights = requiredRightsFunction(req);
             // Get rights from user's roles
             const userRights = Role.getUserRightsFromRoles(userRoles);
+            userReq.userRights = userRights;
             for (const requiredRightType of Object.keys(requiredRights)) {
                 if (!userRights[requiredRightType])
                     throw new HttpErrors.Unauthorized(`user do not have '${requiredRightType}' rights`);

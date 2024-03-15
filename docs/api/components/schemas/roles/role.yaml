@@ -1,0 +1,19 @@
+type: object
+description: role schema
+properties:
+  id:
+    type: string
+    format: uuid
+    description: the role id
+    readOnly: true
+  name:
+    type: string
+    description: the role name
+  rights:
+    type: object
+    description: the role allowed rights
+  userIds:
+    type: array
+    description: the ids of users atatched to this role
+    items:
+      type: string 

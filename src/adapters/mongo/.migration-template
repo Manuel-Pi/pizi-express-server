@@ -1,0 +1,15 @@
+import { db } from "../DbAdapter.js"
+
+const filename = "1710132248186-userindexes.js"
+
+export async function up(next: any) {
+    throw new Error("not implemented")
+    logger.info(`${filename} up migration successfully executed`)
+    next()
+}
+
+export async function down(next: any) {
+    throw new Error("not implemented")
+    logger.info(`${filename} down migration successfully executed`)
+    next()
+}

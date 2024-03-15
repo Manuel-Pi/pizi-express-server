@@ -5,18 +5,22 @@ import { Role } from "~/core/models/Role.js"
 import { UserRequest } from "~/types.js"
 import { HttpErrors } from "~/Utils.js"
 
-export default function(requiredRights: { [rightType: string]: string[]} ) {
+export default function(requiredRightsFunction: (req: Request) => { [rightType: string]: string[]} ) {
     return async function(req: Request, res: Response, next: NextFunction){
         try{
             const userReq = req as UserRequest
             if(!userReq.userId) throw new HttpErrors.Unauthorized(`user not found in request`)
 
             const userRoles = await RoleDbAdapter.getUserRoles(userReq.userId)
+            userReq.userRoles = userRoles
             // If user has superAdminRole access is allowed
             if(userRoles.map(role => role.name).includes(process.env.SUPER_ADMIN_ROLE)) return next()
 
+            const requiredRights = requiredRightsFunction(req)
+
             // Get rights from user's roles
             const userRights = Role.getUserRightsFromRoles(userRoles)
+            userReq.userRights = userRights
             for(const requiredRightType of Object.keys(requiredRights)){
                 if(!userRights[requiredRightType]) throw new HttpErrors.Unauthorized(`user do not have '${requiredRightType}' rights`)
                 for(const requiredRightName of requiredRights[requiredRightType]){

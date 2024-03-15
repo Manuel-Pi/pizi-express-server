@@ -6,6 +6,10 @@ export interface IModel {
 }
 
 export abstract class Model {
+    
+    static ERRORS = {
+        InvalidDataError: class InvalidDataError extends Error {}
+    }
 
     static getSchema() {
         let ineheritedSchema = {}
@@ -41,13 +45,13 @@ export abstract class Model {
             const ModelSchema = z.object(constructor.getSchema())
             Object.assign(this, ModelSchema.parse({...this, ...data}))
         } catch(e){
-            let message = `cannot assign data to ${this.constructor.name} (id: '${this.id}'): `
+            let message = `cannot assign data to ${this.constructor.name} (id: '${data.id || this.id}'): `
             if(e instanceof ZodError){
                 message += e.errors.map(ze => `${ze.path.join(', ')} ${ze.message.toLowerCase()}`).join(', ')
             } else {
                 message += e.message
             }
-            throw new Error(message)
+            throw new Model.ERRORS.InvalidDataError(message)
         }
 
     }

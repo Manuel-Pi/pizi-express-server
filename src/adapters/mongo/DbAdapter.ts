@@ -3,8 +3,14 @@ import { Model } from "~/core/models/Model.js"
 import { IAdapter } from "../adapters.js"
 import { logger } from "~/core/loggers.js"
 
-export const dbClient = new MongoClient(process.env.MONGO_URL!)
-export const db = dbClient.db(process.env.MONGO_DB_NAME!)
+export const dbClient = new MongoClient(process.env.MONGO_URL)
+export const db = dbClient.db(process.env.MONGO_DB_NAME)
+
+export const ERRORS = {
+    InvalidDataError: class InvalidDataError extends Error {},
+    DuplicateError  : class DuplicateError extends Error {},
+    NotFoundError   : class NotFoundError extends Error {}
+}
 
 export default <T extends Model, U extends IAdapter<T> = IAdapter<T>> (ModelClass: any, customDefinition: Partial<U> = {}, collectionName?: string): U => {
     const collection = db.collection<T>(collectionName || (ModelClass.name + 's'))
@@ -18,6 +24,9 @@ export default <T extends Model, U extends IAdapter<T> = IAdapter<T>> (ModelClas
                 $set: model
             }, {
                 upsert: true
+            }).catch(e => {
+                if(e.codeName === "DuplicateKey") throw new ERRORS.DuplicateError(e)
+                throw e
             })            
         },
         async delete(id) {

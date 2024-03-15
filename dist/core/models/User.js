@@ -12,6 +12,7 @@ export class User extends Model {
     email;
     username;
     password;
+    settings = {};
     constructor(user) {
         super(user);
         this.assign(user);

@@ -27,3 +27,65 @@ get:
       description: [FTName|singular] not found
     "500":
       description: server error
+put:
+  summary: update a [FTName|singular]
+  tags:
+    - [FTName]
+  security:
+    - oAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: The [FTName|singular] id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  body:
+    requestBody:
+      description: The [FTName|singular] payload
+      required: true
+      content:
+        application/jsom:
+          schema:
+            $ref: "../../components/schemas/[FTName]/[FTName|singular].yaml"
+  responses:
+    "200":
+      description: the updated [FTName|singular]
+      content:
+        application/json:
+          schema:
+              $ref: "../../components/schemas/[FTName]/[FTName|singular].yaml"
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "404":
+      description: [FTName|singular] not found
+    "500":
+      description: server error
+delete:
+  summary: delete a [FTName|singular]
+  tags:
+    - [FTName]
+  security:
+    - oAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: The [FTName|singular] id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    "200":
+      description: [FTName|singular] deleted
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "404":
+      description: [FTName|singular] not found
+    "500":
+      description: server error

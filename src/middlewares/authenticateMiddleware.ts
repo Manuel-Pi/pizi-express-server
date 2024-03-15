@@ -10,6 +10,7 @@ export default async function (req: Request, res: Response, next: NextFunction):
             const token = await oauth.authenticate(new OAuth2Server.Request(req), new OAuth2Server.Response(res))
             const userReq = req as UserRequest
             userReq.userId = token.user.id
+            userReq.tokenId = token.id
         }
         next()
     } catch(e) {

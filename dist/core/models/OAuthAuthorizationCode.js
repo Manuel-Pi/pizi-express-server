@@ -15,6 +15,8 @@ export class OAuthAuthorizationCode extends Model {
     expiresAt;
     authorizationCode;
     responseType = 'code';
+    codeChallenge;
+    codeChallengeMethod;
     scope = [];
     constructor(oAuthAuthorizationCode) {
         super(oAuthAuthorizationCode);

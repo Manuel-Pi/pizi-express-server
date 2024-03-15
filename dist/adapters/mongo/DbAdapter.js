@@ -2,6 +2,14 @@ import { MongoClient } from "mongodb";
 import { logger } from "../../core/loggers.js";
 export const dbClient = new MongoClient(process.env.MONGO_URL);
 export const db = dbClient.db(process.env.MONGO_DB_NAME);
+export const ERRORS = {
+    InvalidDataError: class InvalidDataError extends Error {
+    },
+    DuplicateError: class DuplicateError extends Error {
+    },
+    NotFoundError: class NotFoundError extends Error {
+    }
+};
 export default (ModelClass, customDefinition = {}, collectionName) => {
     const collection = db.collection(collectionName || (ModelClass.name + 's'));
     logger.debug(`new db adpater for model: ${ModelClass.name} (collection: ${collection.collectionName})`);
@@ -14,6 +22,10 @@ export default (ModelClass, customDefinition = {}, collectionName) => {
                 $set: model
             }, {
                 upsert: true
+            }).catch(e => {
+                if (e.codeName === "DuplicateKey")
+                    throw new ERRORS.DuplicateError(e);
+                throw e;
             });
         },
         async delete(id) {

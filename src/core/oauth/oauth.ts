@@ -103,13 +103,35 @@ export function tokenOptions(req: any) {
     }
 }
 
-export function tokenToSnakeCase(token: oAuth2Server.Token){
-    return {
+export function tokenToSnakeCase(token: oAuth2Server.Token, withRefreshToken: boolean = true){
+    const returnedToken: {
+        access_token: string
+        access_token_expires_at: Date | undefined
+        refresh_token?: string
+        refresh_token_expires_at?: Date | undefined
+        token_type: string
+        user: oAuth2Server.User
+    } = {
         access_token: 			    token.accessToken,
         access_token_expires_at: 	token.accessTokenExpiresAt,
-        refresh_token: 			    token.refreshToken,
-        refresh_token_expires_at:   token.refreshTokenExpiresAt,
         token_type:                 token.tokenType,
         user:                       token.user
     }
+    if(withRefreshToken){
+        returnedToken.refresh_token = token.refreshToken
+        returnedToken.refresh_token_expires_at = token.refreshTokenExpiresAt
+    }
+    return returnedToken
+}
+
+export async function generateCodeChallenge(codeVerifier: string, method: string = 'S256') {
+    let digest
+    switch(method){
+        case 'S256':
+            digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier))
+            break;
+        default:
+            throw new Error('invalid method')
+    }
+    return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
 }

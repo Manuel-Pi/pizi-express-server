@@ -9,6 +9,8 @@ export interface IOAuthAuthorizationCode extends IModel {
     expiresAt:      	Date
     authorizationCode: 	string
 	responseType?:		'code'
+	codeChallenge?: 	string
+	codeChallengeMethod?: string
 	scope?:          	string[]
 }
 
@@ -19,6 +21,8 @@ export class OAuthAuthorizationCode extends Model implements IOAuthAuthorization
 		redirectUri: 		z.string().url().trim(),
 		expiresAt: 			z.date(),
 		authorizationCode: 	z.string(),
+		codeChallenge: 		z.string().optional(),
+		codeChallengeMethod: z.string().optional(),
 		scope: 			 	z.array( z.string().trim()).optional().nullable()
 	}
 
@@ -28,6 +32,8 @@ export class OAuthAuthorizationCode extends Model implements IOAuthAuthorization
     expiresAt:      	Date
     authorizationCode: 	string
 	responseType: 		'code' = 'code'
+	codeChallenge?: 		string
+	codeChallengeMethod?: string
 	scope?:          	string[] = []
 
     constructor(oAuthAuthorizationCode: IOAuthAuthorizationCode){

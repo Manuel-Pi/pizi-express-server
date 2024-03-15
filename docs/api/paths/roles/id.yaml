@@ -1,0 +1,91 @@
+get:
+  summary: get a role by id
+  tags:
+    - roles
+  security:
+    - oAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: The role id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    "200":
+      description: the created role
+      content:
+        application/json:
+          schema:
+              $ref: "../../components/schemas/roles/role.yaml"
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "404":
+      description: role not found
+    "500":
+      description: server error
+put:
+  summary: update a role
+  tags:
+    - roles
+  security:
+    - oAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: The role id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  body:
+    requestBody:
+      description: The role payload
+      required: true
+      content:
+        application/jsom:
+          schema:
+            $ref: "../../components/schemas/roles/role.yaml"
+  responses:
+    "200":
+      description: the updated role
+      content:
+        application/json:
+          schema:
+              $ref: "../../components/schemas/roles/role.yaml"
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "404":
+      description: role not found
+    "500":
+      description: server error
+delete:
+  summary: delete a role
+  tags:
+    - roles
+  security:
+    - oAuth: []
+  parameters:
+    - name: id
+      in: path
+      description: The role id
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    "200":
+      description: role deleted
+    "400":
+      description: bad request
+    "403":
+      description: unauthorized
+    "404":
+      description: role not found
+    "500":
+      description: server error

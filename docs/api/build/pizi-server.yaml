@@ -69,9 +69,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/oauthToken'
-  '/api/users/{id}':
+  /api/rest/users:
+    post:
+      summary: create a user
+      tags:
+        - users
+      security:
+        - oAuth: []
+      body:
+        requestBody:
+          description: The user payload
+          required: true
+          content:
+            application/jsom:
+              schema:
+                $ref: '#/components/schemas/user'
+      responses:
+        '200':
+          description: the created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '404':
+          description: user not found
+        '409':
+          description: conflict
+        '500':
+          description: server error
     get:
-      summary: get an user by id
+      summary: list users
+      tags:
+        - users
+      security:
+        - oAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The user id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: the created user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/user'
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '500':
+          description: server error
+  '/api/rest/users/{id}':
+    get:
+      summary: get a user by id
       tags:
         - users
       security:
@@ -99,13 +160,76 @@ paths:
           description: user not found
         '500':
           description: server error
-  /api/users/list:
-    post:
-      description: list users
+    put:
+      summary: update a user
       tags:
         - users
       security:
         - oAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The user id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      body:
+        requestBody:
+          description: The user payload
+          required: true
+          content:
+            application/jsom:
+              schema:
+                $ref: '#/components/schemas/user'
+      responses:
+        '200':
+          description: the updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/user'
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '404':
+          description: user not found
+        '500':
+          description: server error
+    delete:
+      summary: delete a user
+      tags:
+        - users
+      security:
+        - oAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The user id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: user deleted
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '404':
+          description: user not found
+        '500':
+          description: server error
+  /api/rest/users/search:
+    post:
+      summary: search users
+      tags:
+        - users
+      security:
+        - oAuth: []
+      parameters: null
       requestBody:
         required: false
         content:
@@ -139,6 +263,215 @@ paths:
           description: unauthorized
         '404':
           description: user not found
+        '415':
+          description: unsupported media-type
+        '500':
+          description: server error
+  /api/rest/roles:
+    post:
+      summary: create a role
+      tags:
+        - roles
+      security:
+        - oAuth: []
+      body:
+        requestBody:
+          description: The role payload
+          required: true
+          content:
+            application/jsom:
+              schema:
+                $ref: '#/paths/~1api~1rest~1roles/post/responses/200/content/application~1json/schema'
+      responses:
+        '200':
+          description: the created role
+          content:
+            application/json:
+              schema:
+                type: object
+                description: role schema
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: the role id
+                    readOnly: true
+                  name:
+                    type: string
+                    description: the role name
+                  rights:
+                    type: object
+                    description: the role allowed rights
+                  userIds:
+                    type: array
+                    description: the ids of users atatched to this role
+                    items:
+                      type: string
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '404':
+          description: role not found
+        '409':
+          description: conflict
+        '500':
+          description: server error
+    get:
+      summary: list roles
+      tags:
+        - roles
+      security:
+        - oAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The role id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: the created role
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/paths/~1api~1rest~1roles/post/responses/200/content/application~1json/schema'
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '500':
+          description: server error
+  '/api/rest/roles/{id}':
+    get:
+      summary: get a role by id
+      tags:
+        - roles
+      security:
+        - oAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The role id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: the created role
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1api~1rest~1roles/post/responses/200/content/application~1json/schema'
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '404':
+          description: role not found
+        '500':
+          description: server error
+    put:
+      summary: update a role
+      tags:
+        - roles
+      security:
+        - oAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The role id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      body:
+        requestBody:
+          description: The role payload
+          required: true
+          content:
+            application/jsom:
+              schema:
+                $ref: '#/paths/~1api~1rest~1roles/post/responses/200/content/application~1json/schema'
+      responses:
+        '200':
+          description: the updated role
+          content:
+            application/json:
+              schema:
+                $ref: '#/paths/~1api~1rest~1roles/post/responses/200/content/application~1json/schema'
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '404':
+          description: role not found
+        '500':
+          description: server error
+    delete:
+      summary: delete a role
+      tags:
+        - roles
+      security:
+        - oAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The role id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: role deleted
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '404':
+          description: role not found
+        '500':
+          description: server error
+  /api/rest/roles/search:
+    post:
+      summary: search roles
+      tags:
+        - roles
+      security:
+        - oAuth: []
+      parameters: null
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/paths/~1api~1rest~1users~1search/post/requestBody/content/application~1json/schema'
+      responses:
+        '200':
+          headers:
+            count:
+              schema:
+                type: integer
+              description: roles matching filter (without pagination)
+          description: the roles list matching filter and pagination
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/paths/~1api~1rest~1roles/post/responses/200/content/application~1json/schema'
+        '400':
+          description: bad request
+        '403':
+          description: unauthorized
+        '404':
+          description: role not found
         '415':
           description: unsupported media-type
         '500':
@@ -291,9 +624,7 @@ components:
         username:
           type: string
           description: the user username
-          readOnly: true
         email:
           type: string
           format: email
           description: the user email
-          readOnly: true
