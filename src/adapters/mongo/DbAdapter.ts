@@ -1,5 +1,5 @@
 import { MongoClient } from "mongodb"
-import { Model } from "~/core/models/Model.js"
+import { IModel, Model } from "~/core/models/Model.js"
 import { IAdapter } from "../adapters.js"
 import { logger } from "~/core/loggers.js"
 
@@ -12,10 +12,15 @@ export const ERRORS = {
     NotFoundError   : class NotFoundError extends Error {}
 }
 
-export default <T extends Model, U extends IAdapter<T> = IAdapter<T>> (ModelClass: any, customDefinition: Partial<U> = {}, collectionName?: string): U => {
+export interface IdbAdapter<T extends IModel> extends IAdapter<T> {
+    Model: any
+}
+
+export default <T extends Model, U extends IAdapter<T> = IAdapter<T>> (ModelClass: any, customDefinition: Partial<U> = {}, collectionName?: string): U & { Model: any } => {
     const collection = db.collection<T>(collectionName || (ModelClass.name + 's'))
     logger.debug(`new db adpater for model: ${ModelClass.name} (collection: ${collection.collectionName})`)
     return {
+        Model: ModelClass,
         async save(model){
             logger.debug(`saving ${ModelClass.name} model with id: '${model.id}'`)
             await collection.findOneAndUpdate({
@@ -53,5 +58,5 @@ export default <T extends Model, U extends IAdapter<T> = IAdapter<T>> (ModelClas
             }
         },
         ...customDefinition
-    } as U
+    } as U & { Model: any}
 }

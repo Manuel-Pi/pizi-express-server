@@ -14,6 +14,7 @@ export default (ModelClass, customDefinition = {}, collectionName) => {
     const collection = db.collection(collectionName || (ModelClass.name + 's'));
     logger.debug(`new db adpater for model: ${ModelClass.name} (collection: ${collection.collectionName})`);
     return {
+        Model: ModelClass,
         async save(model) {
             logger.debug(`saving ${ModelClass.name} model with id: '${model.id}'`);
             await collection.findOneAndUpdate({

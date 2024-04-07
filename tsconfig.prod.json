@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig",
   "include": ["src"],
-  "exclude": ["node_modules", "tests", "**/*.test.ts"],
+  "exclude": ["node_modules", "tests", "**/*.test.ts", "**/clientApi.ts"],
   "compilerOptions": {
     "rootDir": "src"
   }

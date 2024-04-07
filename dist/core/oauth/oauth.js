@@ -117,4 +117,15 @@ export function tokenToSnakeCase(token, withRefreshToken = true) {
     }
     return returnedToken;
 }
+export async function generateCodeChallenge(codeVerifier, method = 'S256') {
+    let digest;
+    switch (method) {
+        case 'S256':
+            digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier));
+            break;
+        default:
+            throw new Error('invalid method');
+    }
+    return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
 //# sourceMappingURL=oauth.js.map

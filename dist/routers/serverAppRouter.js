@@ -1,21 +1,19 @@
 import OAuth2Server from '@node-oauth/oauth2-server';
 import express from 'express';
-import oauth, { tokenOptions, tokenToSnakeCase } from '../core/oauth/oauth.js';
+import oauth, { generateCodeChallenge, tokenOptions, tokenToSnakeCase } from '../core/oauth/oauth.js';
 import { logger } from '../core/loggers.js';
-import { HttpErrors, decrypt } from '../Utils.js';
+import { HttpErrors, decrypt, generateRandomString } from '../Utils.js';
 import { encrypt } from '../Utils.js';
 import OAuthTokenDbAdapter from '../adapters/mongo/OAuthTokenDbAdapter.js';
 import { withRefreshToken } from './oauthRouter.js';
 const router = express.Router();
-const STATES = [];
-const CODE_VERIFIERS = [];
+const STATES = {};
 router.get("/token", async (req, res, next) => {
     try {
         let token;
-        const cookies = req.cookies;
-        if (!cookies || !cookies.token)
+        if (!req.cookies?.token)
             throw new HttpErrors.NotFound();
-        const tokenFromCookie = JSON.parse(decrypt(cookies.token));
+        const tokenFromCookie = JSON.parse(decrypt(req.cookies.token));
         logger.info(`token retrieved from cookie for user '${tokenFromCookie.userId}'`);
         req.headers.authorization = `Bearer ${tokenFromCookie.access_token}`;
         token = await oauth.authenticate(new OAuth2Server.Request(req), new OAuth2Server.Response(res)).catch(async (e) => {
@@ -51,8 +49,9 @@ router.get("/token", async (req, res, next) => {
 });
 router.get("/authorizeCallback", async (req, res, next) => {
     try {
-        if (!STATES.includes(req.query.state))
-            res.redirect(302, `/login`);
+        const codeVerifier = STATES[req.query.state];
+        if (!codeVerifier)
+            throw new HttpErrors.BadRequest('invalid state');
         deleteState(req.query.state);
         req.body.client_id = process.env.OAUTH_CLIENT_ID;
         req.body.client_secret = process.env.OAUTH_CLIENT_SECRET;
@@ -60,6 +59,7 @@ router.get("/authorizeCallback", async (req, res, next) => {
         req.body.code = req.query.code;
         req.body.redirect_uri = JSON.parse(process.env.OAUTH_REDIRECT_URIS)[0];
         req.body.stayConnected = req.query.stayConnected;
+        req.body.code_verifier = codeVerifier;
         req.method = "POST";
         req.headers['content-type'] = "application/x-www-form-urlencoded";
         req.headers['content-length'] = req.body.toString().length;
@@ -71,32 +71,20 @@ router.get("/authorizeCallback", async (req, res, next) => {
         res.redirect(302, `/`);
     }
     catch (e) {
-        next(e);
+        logger.error(e);
+        res.redirect(302, `/error`);
     }
 });
-function deleteState(state) {
-    if (STATES.includes(state))
-        STATES.splice(STATES.indexOf(state), 1);
-}
-function generateRandomString(length) {
-    let text = "";
-    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    for (var i = 0; i < length; i++)
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    return text;
-}
-async function generateCodeChallenge(codeVerifier) {
-    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier));
-    return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-}
 router.get("/login", async (req, res, next) => {
     try {
+        const state = generateRandomString(10);
         const codeVerifier = generateRandomString(32);
-        const codeChallenge = await generateCodeChallenge(codeVerifier);
         const codeChallengeMethod = 'S256';
-        const state = (Math.random() + 1).toString(36).substring(10);
-        STATES.push(state);
-        setTimeout(() => deleteState(state), parseInt(process.env.OAUTH_STATE_LIFETIME));
+        const codeChallenge = await generateCodeChallenge(codeVerifier, codeChallengeMethod);
+        // Save codeVerifier with state in memory
+        STATES[state] = codeVerifier;
+        // Remove state after OAUTH_STATE_LIFETIME
+        setTimeout(() => deleteState(state), parseInt(process.env.OAUTH_STATE_LIFETIME) * 1000);
         res.redirect(302, `https://localhost:2200/api/oauth/authorize?${new URLSearchParams({
             clientId: process.env.OAUTH_CLIENT_ID,
             state,
@@ -111,7 +99,7 @@ router.get("/login", async (req, res, next) => {
 });
 router.get("/logout", async (req, res, next) => {
     try {
-        const tokenId = req.tokenId;
+        const tokenId = req.token?.id;
         if (tokenId)
             await OAuthTokenDbAdapter.delete(tokenId);
         res.clearCookie("token");
@@ -121,5 +109,9 @@ router.get("/logout", async (req, res, next) => {
         next(e);
     }
 });
+function deleteState(state) {
+    if (STATES[state])
+        delete STATES[state];
+}
 export default router;
 //# sourceMappingURL=serverAppRouter.js.map

@@ -1,0 +1,1 @@
+{"version":3,"file":"oauthClientsApi.js","sourceRoot":"","sources":["../../../../src/core/api/apis/oauthClientsApi.ts"],"names":[],"mappings":"AAAA,OAAO,oBAAoB,MAAM,0CAA0C,CAAA;AAC3E,OAAO,EAAa,QAAQ,EAAE,MAAM,uBAAuB,CAAA;AAK3D,MAAM,CAAC,MAAM,eAAe,GAAG,IAAI,QAAQ,CAAiC,cAAc,EAAE;IACxF,SAAS,EAAE,oBAAoB;CAClC,CAAC,CAAA"}

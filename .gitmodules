@@ -1,0 +1,3 @@
+[submodule "server-app"]
+	path = server-app
+	url = git@github.com:Manuel-Pi/pizi-server-app.git

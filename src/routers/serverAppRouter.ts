@@ -14,9 +14,8 @@ const STATES: {[key: string]: string} = {}
 router.get("/token", async (req, res, next) => {
     try{
         let token
-        const cookies = req.cookies
-        if(!cookies || !cookies.token) throw new HttpErrors.NotFound()
-        const tokenFromCookie = JSON.parse(decrypt(cookies.token))
+        if(!req.cookies?.token) throw new HttpErrors.NotFound()
+        const tokenFromCookie = JSON.parse(decrypt(req.cookies.token))
         logger.info(`token retrieved from cookie for user '${tokenFromCookie.userId}'`)
 
         req.headers.authorization = `Bearer ${tokenFromCookie.access_token}`
@@ -88,7 +87,7 @@ router.get("/login", async (req, res, next) => {
         // Save codeVerifier with state in memory
         STATES[state] = codeVerifier
         // Remove state after OAUTH_STATE_LIFETIME
-        setTimeout(() => deleteState(state), parseInt(process.env.OAUTH_STATE_LIFETIME))
+        setTimeout(() => deleteState(state), parseInt(process.env.OAUTH_STATE_LIFETIME) * 1000)
 
         res.redirect(302, `https://localhost:2200/api/oauth/authorize?${new URLSearchParams({
             clientId: process.env.OAUTH_CLIENT_ID, 
@@ -104,7 +103,7 @@ router.get("/login", async (req, res, next) => {
 
 router.get("/logout", async (req, res, next) => {
     try{
-        const tokenId = (req as UserRequest).tokenId
+        const tokenId = (req as UserRequest).token?.id
         if(tokenId) await OAuthTokenDbAdapter.delete(tokenId)
         res.clearCookie("token")
         res.end()

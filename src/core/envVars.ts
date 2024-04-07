@@ -1,5 +1,6 @@
 import { z } from "zod"
 
+const BOOLEAN       = z.string().regex(/true|false/)
 const STRING        = z.string()
 const STRING_NUMBER = z.string().regex(/^\d+$/)
 const STRING_ARRAY  = z.string().regex(/^\[(["'][^'"]*['"][\,]?[\s]?)+\]$/)
@@ -13,6 +14,7 @@ const ENV_VAR_MODEL = z.object({
     WEB_APP_DIR:            STRING,
     HTTPS_CERTIFICATES_DIR: STRING,
     PASSWORD_SALT_ROUNDS:   STRING_NUMBER,
+    CACHE_SSR_APP_FILES:    BOOLEAN,
     // Super Admin
     SUPER_ADMIN_ROLE:       STRING,
     SUPER_ADMIN_USERNAME:   STRING,

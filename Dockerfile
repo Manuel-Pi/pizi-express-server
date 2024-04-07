@@ -1,4 +1,4 @@
-FROM node:21-alpine3.17 as installer
+FROM node:lts-alpine as installer
 
 WORKDIR /
 
@@ -13,16 +13,16 @@ WORKDIR /
 COPY src src
 COPY tsconfig.json .
 COPY tsconfig.prod.json .
+COPY webpack.config.cjs .
 RUN npm run build
 
-FROM node:21-alpine3.17
+FROM node:lts-alpine
 WORKDIR /pizi-server
 
 COPY --from=builder /dist ./server
 COPY --from=builder package.json ./server
 COPY --from=builder /node_modules ./node_modules
 COPY configs/dev/pizi-server/certificates ./certificates
-RUN mv ./node_modules/pizi-server-app/dist ./server-app
 
 EXPOSE 2200
 CMD [ "node", "--experimental-specifier-resolution=node", "/pizi-server/server" ]

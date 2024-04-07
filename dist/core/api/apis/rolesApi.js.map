@@ -1,0 +1,1 @@
+{"version":3,"file":"rolesApi.js","sourceRoot":"","sources":["../../../../src/core/api/apis/rolesApi.ts"],"names":[],"mappings":"AACA,OAAO,EAAa,QAAQ,EAAE,MAAM,uBAAuB,CAAA;AAC3D,OAAO,aAAa,MAAM,mCAAmC,CAAA;AAI7D,MAAM,CAAC,MAAM,QAAQ,GAAG,IAAI,QAAQ,CAAkB,OAAO,EAAE;IAC3D,SAAS,EAAE,aAAa;CAC3B,CAAC,CAAA"}

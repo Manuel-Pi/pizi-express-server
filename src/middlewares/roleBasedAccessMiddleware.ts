@@ -9,9 +9,9 @@ export default function(requiredRightsFunction: (req: Request) => { [rightType: 
     return async function(req: Request, res: Response, next: NextFunction){
         try{
             const userReq = req as UserRequest
-            if(!userReq.userId) throw new HttpErrors.Unauthorized(`user not found in request`)
+            if(!userReq.token?.user?.id) throw new HttpErrors.Unauthorized(`user not found in request`)
 
-            const userRoles = await RoleDbAdapter.getUserRoles(userReq.userId)
+            const userRoles = await RoleDbAdapter.getUserRoles(userReq.token.user.id)
             userReq.userRoles = userRoles
             // If user has superAdminRole access is allowed
             if(userRoles.map(role => role.name).includes(process.env.SUPER_ADMIN_ROLE)) return next()

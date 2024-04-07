@@ -7,6 +7,8 @@ export class OAuthAuthorizationCode extends Model {
         redirectUri: z.string().url().trim(),
         expiresAt: z.date(),
         authorizationCode: z.string(),
+        codeChallenge: z.string().optional(),
+        codeChallengeMethod: z.string().optional(),
         scope: z.array(z.string().trim()).optional().nullable()
     };
     clientId;

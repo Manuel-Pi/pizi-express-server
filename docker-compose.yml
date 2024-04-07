@@ -22,6 +22,9 @@ services:
     env_file:
       - ./configs/dev/.env
       - ./configs/dev/pizi-server/.env
+    volumes:
+      - ./server-app/dist:/pizi-server/server-app
+      - ./server-app/package.json:/pizi-server/server-app/package.json
     ports:
       - "2200:2200"
       - "9229:9229"

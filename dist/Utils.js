@@ -28,6 +28,10 @@ export function decrypt(text) {
     return decrypted.toString();
 }
 export function runMigrations(migrationsDir = process.env.MIGRATIONS_DIR) {
+    function error(e, reject) {
+        logger.error(`error on migration: ${e.message}`);
+        reject(e);
+    }
     return new Promise((resolve, reject) => {
         try {
             migrate.load({
@@ -74,8 +78,11 @@ export function runMigrations(migrationsDir = process.env.MIGRATIONS_DIR) {
         }
     });
 }
-function error(e, reject) {
-    logger.error(`error on migration: ${e.message}`);
-    reject(e);
+export function generateRandomString(length) {
+    let text = "";
+    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for (var i = 0; i < length; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    return text;
 }
 //# sourceMappingURL=Utils.js.map
