@@ -34,8 +34,7 @@
 		"url": "/pizi-email",
 		"role": "admin",
 		"printToConsole": false,
-		"auth": {
-		}
+		"service": "mailgun"
 	},
 	"jwt": {
 		"token": {
