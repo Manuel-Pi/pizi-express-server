@@ -1,9 +1,6 @@
 const nodemailer = require('nodemailer')
 const {google} = require('googleapis')
 const config = require('../../config.json')
-const Logger = require('./logger.js')
-
-const console = new Logger()
 
 const email = (() => {
     try{

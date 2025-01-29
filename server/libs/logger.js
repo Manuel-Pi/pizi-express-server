@@ -122,7 +122,7 @@ const LOGGERS = new Map()
 
 module.exports = {
     setConfig(config){
-        Logger.CONFIG = {...CONFIG, ...config}
+        Logger.CONFIG = {...Logger.CONFIG, ...config}
         Logger.CONSOLE_LEVEL = Logger.getLogLevelValue(Logger.CONFIG.console)
         Object.values(Logger.LOG_FILES).forEach(file => file.close())
         Logger.LOG_FILES = {}

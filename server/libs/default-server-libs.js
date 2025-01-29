@@ -2,7 +2,7 @@
 const config = require('../../config.json')
 const fs = require('fs')
 const path = require('path')
-const logConfig = config.log || {}
+const logConfig = config.log || {}
 const openFiles = {}
 
 
@@ -28,7 +28,7 @@ const CONSOLE_LOG_LEVEL = getLogLevelValue(logConfig.console)
  * @param {string} prefix - logger name
  * @param {
  *          level: 'debug' | 'info' | 'warn' | 'error'
- *          type: 'server' | 'app' | 'api'
+ *          type: 'server' | 'app' | 'api'
  *        } options - logger options
  */
 const getLogger = (prefix = "", options = {}) => {
@@ -101,8 +101,10 @@ const getLogger = (prefix = "", options = {}) => {
 }
 const logger = getLogger()
 
+const email = require('./email.js')
+
 module.exports = {
-    email: {
+    email: email || {
         sendMail(emailObject, callback){
             logger.info("[email to console] => " + JSON.stringify(emailObject))
             callback(null, {})
